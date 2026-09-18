@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+data/raw/
+data/manifests/
+data/manifest.json
+data/download-report.json
+dist/
