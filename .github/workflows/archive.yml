@@ -1,0 +1,33 @@
+name: Archive LuckyJ source logs
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase1-database]
+    paths: ['scripts/download.py', '.github/workflows/archive.yml']
+permissions:
+  contents: read
+concurrency:
+  group: luckyj-source-archive
+  cancel-in-progress: false
+jobs:
+  archive:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore verified raw cache
+        uses: actions/cache@v4
+        with:
+          path: data/raw
+          key: luckyj-raw-${{ github.run_id }}
+          restore-keys: luckyj-raw-
+      - name: Archive all resolvable logs with provenance
+        run: python3 scripts/download.py --out data
+      - name: Save raw archive and coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: luckyj-raw
+          path: data/
+          retention-days: 90
+          if-no-files-found: error
