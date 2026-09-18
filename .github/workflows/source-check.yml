@@ -1,0 +1,58 @@
+name: Verify live sources
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/source-check.yml']
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch source manifest and sample logs
+        shell: bash
+        run: |
+          mkdir -p source-probe
+          python3 - <<'PY'
+          import json, pathlib, time, urllib.request, urllib.parse
+          out = pathlib.Path('source-probe')
+          name = '\u24ddLuckyJ'
+          url = 'https://nodocchi.moe/api/listuser.php?' + urllib.parse.urlencode({'name': name})
+          def get(u):
+              req = urllib.request.Request(u, headers={'User-Agent': 'LuckyJ-Archive/0.1 (https://github.com/zdwnss1/LuckyJ)'})
+              with urllib.request.urlopen(req, timeout=45) as r:
+                  return r.read(), r.status, r.headers.get('Content-Type')
+          data = None
+          for attempt in range(4):
+              raw, status, ct = get(url)
+              (out / 'manifest.json').write_bytes(raw)
+              data = json.loads(raw)
+              if not data.get('retry'): break
+              time.sleep(min(float(data['retry']) + 1, 60))
+          records = data.get('list', [])
+          print('MANIFEST', json.dumps({k:v for k,v in data.items() if k != 'list'}, ensure_ascii=False)[:4000])
+          print('RECORD_COUNT', len(records))
+          print('FIRST_RECORDS', json.dumps(records[:2], ensure_ascii=False)[:5000])
+          urls = [r.get('url') for r in records if r.get('url')]
+          ids = []
+          for u in urls:
+              logid = urllib.parse.parse_qs(urllib.parse.urlsplit(u).query).get('log', [None])[0]
+              if logid and logid not in ids: ids.append(logid)
+          print('UNIQUE_LOG_IDS', len(ids), 'ROWS_WITHOUT_URL', len(records) - len(urls))
+          for logid in ids[:3]:
+              for suffix, endpoint in [('xml','https://tenhou.net/0/log/?'), ('json','https://tenhou.net/5/mjlog2json.cgi?')]:
+                  try:
+                      time.sleep(2)
+                      raw, status, ct = get(endpoint + logid)
+                      (out / (logid + '.' + suffix)).write_bytes(raw)
+                      print('SAMPLE', logid, suffix, status, ct, len(raw), raw[:160])
+                  except Exception as e:
+                      print('SAMPLE_ERROR', logid, suffix, repr(e))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: source-probe
+          path: source-probe/
+          retention-days: 7
