@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>LuckyJ · 牌谱检索</title>
+<link rel="stylesheet" href="/style.css"><script src="/app.js" defer></script>
+</head>
+<body>
+<header class="topbar"><div class="brand"><span class="logo">LJ</span><div><strong>LuckyJ</strong><span class="brand-sub">牌谱检索档案</span></div></div><span class="phase">PHASE 01 · 具体场况与切牌</span><a href="https://github.com/zdwnss1/LuckyJ" target="_blank" rel="noreferrer">GitHub ↗</a></header>
+<main>
+<section class="intro"><div><span class="eyebrow">THE DECISION ARCHIVE</span><h1>找到那一手，<span>看清当时的选择。</span></h1><p>按场况寻找切牌，或从具体牌型反查场况。每条记录都回到 LuckyJ 切牌前的一刻。</p></div><div class="identity"><span class="status-dot"></span>精确账号 <strong>ⓝLuckyJ</strong><small>不合并同名玩家</small></div></section>
+<section id="metrics" class="metrics" aria-label="归档覆盖情况"><div>正在读取归档状态…</div></section>
+<div id="coverage" class="coverage" role="status"></div>
+<div class="workspace">
+<aside class="filters">
+<div class="filter-heading"><h2>检索条件</h2><button id="reset" type="button" class="text-button">重置</button></div>
+<div class="modes" role="group" aria-label="检索入口"><button id="mode-situation" type="button" aria-pressed="true">场况 → 切牌</button><button id="mode-discard" type="button" aria-pressed="false">切牌 → 场况</button></div>
+<p class="hint">两个方向共用同一检索器，所有已填条件同时生效。</p>
+<form id="query">
+<div id="filter-sections">
+<fieldset id="situation-section"><legend><span>01</span> 具体场况</legend>
+<div class="fields three"><label>局数<select name="round_no" id="round-no"><option value="">不限</option></select></label><label>本场<input name="honba" type="number" min="0" max="99" placeholder="不限"></label><label>LuckyJ 次位<select name="rank"><option value="">不限</option><option value="1">1 位</option><option value="2">2 位</option><option value="3">3 位</option><option value="4">4 位</option></select></label></div>
+<label class="full">分数与次位口径<select name="score_basis"><option value="current">切牌前（含此前已支付的立直棒）</option><option value="start">本局开始时</option></select></label>
+<div id="score-fields"></div>
+<p class="hint">相对座位以 LuckyJ 为自己；上下限相同即精确分数。同点按开局座次排序。</p>
+</fieldset>
+<fieldset id="discard-section"><legend><span>02</span> 具体切牌</legend>
+<div class="fields two"><label>切出的牌<input name="discard" placeholder="如 5m" autocomplete="off" maxlength="8"></label><label>刚摸到的牌<input name="draw" placeholder="如 0p" autocomplete="off" maxlength="8"></label></div>
+<label class="full">切牌方式<select name="tsumogiri"><option value="">不限</option><option value="0">手出（含鸣牌后切牌）</option><option value="1">摸切</option></select></label>
+<label class="full">切牌前的暗手牌<input name="hand" placeholder="如 4556m77p" autocomplete="off" maxlength="60"></label>
+<label class="full">手牌匹配<select name="hand_mode"><option value="contains">包含所填牌（张数也要满足）</option><option value="exact">暗手牌完全相同（含本次摸牌）</option></select></label>
+<label class="full">连续切牌，结束于本次选择<input name="sequence" placeholder="如 1z9m5p" autocomplete="off" maxlength="96"></label>
+<div class="fields two"><label>第几次切牌 · 从<input name="turn_min" type="number" min="1" max="32" placeholder="不限"></label><label>到<input name="turn_max" type="number" min="1" max="32" placeholder="不限"></label></div>
+<label class="check"><input type="checkbox" name="merge_red" value="1">将赤五与普通五合并匹配</label>
+<div class="notation"><b>m 万 · p 筒 · s 索 · z 字</b><br>0 表示赤五；1z–7z 为东南西北白发中。<br>连续切牌只比较 LuckyJ 在同一局的相邻切牌。</div>
+</fieldset>
+</div>
+<input type="hidden" name="game_id" id="game-id">
+<button type="submit" class="primary" id="search">检索牌谱 <span>→</span></button>
+</form>
+</aside>
+<section class="results-section" aria-label="检索结果"><div class="results-top"><div><span class="eyebrow" id="results-label">DECISION RECORDS</span><h2 id="result-count">切牌记录</h2></div><button id="share" class="secondary" type="button">复制检索链接</button></div><p class="hint" id="result-context">牌面包含即将切出的牌；分数默认显示切牌前状态。</p><div id="message" role="status" aria-live="polite"></div><div id="results"></div><nav class="pagination" aria-label="结果分页"><button id="prev" class="secondary" type="button" disabled>← 上一页</button><span id="page-label"></span><button id="next" class="secondary" type="button" disabled>下一页 →</button></nav></section>
+</div>
+<footer>原始来源：天凤 / 天凤牌谱屋 · 索引可由原始 XML 重建 · 本阶段不生成牌效、攻守或其他策略标签。</footer>
+</main>
+<dialog id="detail"><div class="dialog-head"><div><span class="eyebrow">DECISION SNAPSHOT</span><h2 id="detail-title">切牌前的场面</h2></div><button id="close-detail" class="secondary" aria-label="关闭详情">关闭 ×</button></div><div id="detail-body"></div></dialog>
+</body></html>

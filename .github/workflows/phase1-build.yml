@@ -1,0 +1,100 @@
+name: Validate and package phase 1
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase1-database]
+    paths: ['luckyj.py', 'web/**', 'tests/**', 'scripts/package.py', 'scripts/validate.py', 'README.md', '.github/workflows/phase1-build.yml']
+permissions:
+  contents: write
+  actions: read
+concurrency:
+  group: luckyj-phase1-package
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: phase1-database
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Persist verified real fixtures and tighten empty tile validation
+        shell: bash
+        run: |
+          if [ ! -f tests/fixtures/2023041911gm-0001-0000-cba4cded.xml ]; then
+            gh run download 35347834102 --name source-probe --dir source-probe
+            mkdir -p tests/fixtures
+            for id in 2023041911gm-0001-0000-cba4cded 2023041911gm-0009-0000-24ce7cb7 2023041911gm-0009-0000-76965bea; do
+              cp "source-probe/$id.xml" "source-probe/$id.json" tests/fixtures/
+            done
+          fi
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('luckyj.py')
+          s=p.read_text()
+          before='    if not text:\n        return []\n'
+          after='    if not text:\n        raise ValueError("请输入至少一张有效牌")\n'
+          if before in s:
+              assert s.count(before)==1
+              p.write_text(s.replace(before,after))
+          else:
+              assert after in s
+          PY
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- luckyj.py tests/fixtures
+          if ! git diff --cached --quiet; then
+            git commit -m 'Persist verified source fixtures and reject empty normalized tile inputs'
+            git push origin HEAD:phase1-database
+          fi
+      - name: Run offline unit and HTTP tests
+        run: python -m unittest discover -s tests -v
+      - name: Restore the completed immutable raw archive
+        run: gh run download 35348448190 --name luckyj-raw --dir data
+      - name: Rebuild and reconcile the complete linked corpus
+        run: |
+          python luckyj.py build --data data
+          python scripts/validate.py --data data
+      - name: Package application, original logs and SQLite database
+        run: |
+          python scripts/package.py --data data --out dist
+          python - <<'PY'
+          from pathlib import Path
+          import json,zipfile
+          r=json.loads(Path('data/build-report.json').read_text())
+          Path('dist/coverage.json').write_text(json.dumps(r,ensure_ascii=False,indent=2))
+          with zipfile.ZipFile('source-code.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in ('luckyj.py','README.md','web','scripts','tests'):
+                  p=Path(name)
+                  for f in (p.rglob('*') if p.is_dir() else [p]):
+                      if f.is_file() and '__pycache__' not in f.parts:
+                          z.write(f,str(f))
+          Path('release-notes.md').write_text(f'''第一阶段可运行归档包：原始 XML、完整来源清单、SQLite、中文前端和测试。
+          来源记录 {r['source_records']} 条；可定位且已入库 {r['indexed_games']} 份；{r['rounds']} 个实际局次；{r['decisions']} 次 LuckyJ 切牌。
+          注意：另有 {r['records_without_url']} 条来源记录没有牌谱链接，未伪称补全。
+          解压后进入 LuckyJ，运行 `python luckyj.py serve --data data`，打开 http://127.0.0.1:8765。
+          数据和代码在本次构建中校验；源码分支 phase1-database，未强制覆盖 main。''')
+          PY
+      - name: Publish durable versioned archive assets
+        shell: bash
+        run: |
+          TAG="phase1-20260918-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          gh release create "$TAG" dist/LuckyJ-phase1.zip dist/SHA256SUMS.txt dist/coverage.json --target "$(git rev-parse HEAD)" --prerelease --title 'LuckyJ phase 1 · 2026-09-18' --notes-file release-notes.md
+          echo "RELEASE_TAG=$TAG" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: phase1-source-and-reports
+          path: |
+            source-code.zip
+            data/build-report.json
+            data/validation-report.json
+            dist/SHA256SUMS.txt
+          retention-days: 90
+          if-no-files-found: error

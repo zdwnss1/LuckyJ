@@ -1,13 +1,12 @@
-name: Archive LuckyJ source logs
+name: Download LuckyJ archive
 on:
   workflow_dispatch:
   push:
-    branches: [phase1-database]
-    paths: ['scripts/download.py', '.github/workflows/archive.yml']
+    paths: ['.github/workflows/archive.yml']
 permissions:
   contents: read
 concurrency:
-  group: luckyj-source-archive
+  group: luckyj-download
   cancel-in-progress: false
 jobs:
   archive:
@@ -15,19 +14,35 @@ jobs:
     timeout-minutes: 90
     steps:
       - uses: actions/checkout@v4
-      - name: Restore verified raw cache
-        uses: actions/cache@v4
+      - uses: actions/cache/restore@v4
+        id: cache
         with:
           path: data/raw
-          key: luckyj-raw-${{ github.run_id }}
-          restore-keys: luckyj-raw-
-      - name: Archive all resolvable logs with provenance
-        run: python3 scripts/download.py --out data
-      - name: Save raw archive and coverage report
+          key: luckyj-raw-v1-${{ github.run_id }}
+          restore-keys: luckyj-raw-v1-
+      - name: Download all linked game logs
+        run: python3 scripts/download.py --data data
+      - uses: actions/cache/save@v4
         if: always()
-        uses: actions/upload-artifact@v4
         with:
-          name: luckyj-raw
+          path: data/raw
+          key: luckyj-raw-v1-${{ github.run_id }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: luckyj-raw-archive
           path: data/
           retention-days: 90
           if-no-files-found: error
+      - name: Show coverage summary
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json, os, pathlib
+          p = pathlib.Path('data/download-report.json')
+          if p.exists():
+              d = json.loads(p.read_text())
+              summary = {k:v for k,v in d.items() if k not in ('logs','unavailable')}
+              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+                  f.write('```json\n' + json.dumps(summary, ensure_ascii=False, indent=2) + '\n```\n')
+          PY
