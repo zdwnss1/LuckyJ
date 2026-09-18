@@ -7,6 +7,8 @@ const honorNames = ['东','南','西','北','白','发','中'];
 const suitNames = {m:'万',p:'筒',s:'索',z:'字'};
 let query = new URLSearchParams(), cursor = null, loaded = 0, requestController = null, detailController = null;
 let currentDetail = null, mode = 'context';
+// A named control can shadow form.reset; call the native method explicitly.
+function resetForm() { HTMLFormElement.prototype.reset.call(form); }
 function el(tag, cls, text) {
   const e = document.createElement(tag);
   if (cls) e.className = cls;
@@ -52,7 +54,7 @@ function readForm() {
   q.set('red',$('#red').checked?'1':'0'); return q;
 }
 function fillForm(q) {
-  form.reset();
+  resetForm();
   for(const [key,value] of q) if(form.elements.namedItem(key)) form.elements.namedItem(key).value=value;
   $('#red').checked=q.get('red')!=='0';
   if([...q.keys()].some(k=>/^(score|rank)[123]/.test(k))) $('details').open=true;
@@ -151,8 +153,8 @@ for(let i=1;i<4;i++){
 $('#contextMode').addEventListener('click',()=>{setMode('context');updateURL();});$('#actionMode').addEventListener('click',()=>{setMode('action');updateURL();});
 form.addEventListener('submit',e=>{e.preventDefault();runSearch();});
 $('#more').addEventListener('click',()=>runSearch(true));
-$('#reset').addEventListener('click',()=>{form.reset();$('details').open=false;runSearch();});
-$('.examples').addEventListener('click',e=>{const v=e.target.dataset.example;if(!v)return;form.reset();if(v==='south4'){form.elements.wind.value='1';form.elements.hand_no.value='4';form.elements.rank0.value='4';setMode('context');}if(v==='233'){form.elements.hand.value='233m';form.elements.discard.value='2m';setMode('action');}if(v==='red'){form.elements.discard.value='0p';setMode('action');}runSearch();});
+$('#reset').addEventListener('click',()=>{resetForm();$('details').open=false;runSearch();});
+$('.examples').addEventListener('click',e=>{const v=e.target.dataset.example;if(!v)return;resetForm();if(v==='south4'){form.elements.wind.value='1';form.elements.hand_no.value='4';form.elements.rank0.value='4';setMode('context');}if(v==='233'){form.elements.hand.value='233m';form.elements.discard.value='2m';setMode('action');}if(v==='red'){form.elements.discard.value='0p';setMode('action');}runSearch();});
 $('#closeDetail').addEventListener('click',()=>$('#detail').close());
 $('#detail').addEventListener('close',()=>{if(detailController)detailController.abort();updateURL();});
 $('#previous').addEventListener('click',()=>{if(currentDetail?.previous)loadDetail(currentDetail.previous);});

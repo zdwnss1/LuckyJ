@@ -6,7 +6,6 @@ on:
   pull_request:
 permissions:
   contents: read
-  actions: read
 jobs:
   unit:
     runs-on: ubuntu-latest
@@ -20,30 +19,20 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/cache@v4
         with:
-          name: source-probe
-          run-id: 35347834102
-          github-token: ${{ github.token }}
-          path: source-probe
-      - name: Build pinned real sample database
-        run: |
-          python3 - <<'PY'
-          import gzip, pathlib, shutil
-          from luckyj.store import build
-          p=pathlib.Path('data/raw/2023'); p.mkdir(parents=True)
-          shutil.copyfile('source-probe/manifest.json','data/manifest.json')
-          for f in pathlib.Path('source-probe').glob('*.xml'):
-              (p/(f.name+'.gz')).write_bytes(gzip.compress(f.read_bytes(),mtime=0))
-          r=build(pathlib.Path('data'))
-          assert r['indexed_logs']==3 and r['decisions']==293 and r['index_error_count']==0, r
-          PY
+          path: tests/fixtures.json.gz
+          key: luckyj-real-fixtures-v1
+      - name: Build checksum-pinned real sample database
+        run: PYTHONPATH=. python3 tests/prepare_samples.py --data test-data
       - run: python3 -m pip install playwright==1.55.0
       - run: python3 -m playwright install --with-deps chromium
-      - run: PYTHONPATH=. python3 tests/browser_smoke.py --data data
+      - run: PYTHONPATH=. python3 tests/browser_smoke.py --data test-data
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: frontend-verification
-          path: screenshots/
-          retention-days: 30
+          path: |
+            screenshots/
+            tests/fixtures.json.gz
+          retention-days: 90
