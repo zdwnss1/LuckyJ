@@ -75,7 +75,7 @@ def parse_tiles(text, *, single=False, hand=False):
     """Compact notation: 123m405p77z; whitespace, commas and arrows are separators."""
     text = re.sub(r"[\s,，→>\-]", "", text.lower())
     if not text:
-        return []
+        raise ValueError("请输入至少一张有效牌")
     if len(text) > 200 or not re.fullmatch(r"(?:[0-9]+[mpsz])+", text):
         raise ValueError("牌型格式应为 123m405p77z；m/p/s/z 分别为万/筒/索/字")
     result = []
