@@ -1,8 +1,14 @@
-name: Download LuckyJ archive
+name: Build LuckyJ phase-one archive
 on:
   workflow_dispatch:
   push:
-    paths: ['.github/workflows/archive.yml']
+    paths:
+      - '.github/workflows/archive.yml'
+      - 'scripts/**'
+      - 'luckyj/**'
+      - 'app/**'
+      - 'web/**'
+      - 'tests/**'
 permissions:
   contents: read
 concurrency:
@@ -15,13 +21,27 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/cache/restore@v4
-        id: cache
         with:
           path: data/raw
           key: luckyj-raw-v1-${{ github.run_id }}
           restore-keys: luckyj-raw-v1-
+      - name: Run parser tests
+        run: python3 -m unittest -v tests.test_parser
       - name: Download all linked game logs
         run: python3 scripts/download.py --data data
+      - name: Build searchable SQLite database
+        run: python3 scripts/build_db.py --data data --output dist/luckyj.sqlite3
+      - name: Database smoke test
+        run: |
+          python3 - <<'PY'
+          import sqlite3
+          db=sqlite3.connect('dist/luckyj.sqlite3')
+          assert db.execute('pragma integrity_check').fetchone()[0] == 'ok'
+          games=db.execute('select count(*) from games').fetchone()[0]
+          decisions=db.execute('select count(*) from decisions').fetchone()[0]
+          assert games > 0 and decisions > 0
+          print({'games': games, 'decisions': decisions})
+          PY
       - uses: actions/cache/save@v4
         if: always()
         with:
@@ -31,7 +51,22 @@ jobs:
         if: always()
         with:
           name: luckyj-raw-archive
-          path: data/
+          path: |
+            data/raw/
+            data/manifests/
+            data/manifest.json
+            data/download-report.json
+          retention-days: 90
+          if-no-files-found: error
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: luckyj-phase1-db
+          path: |
+            dist/luckyj.sqlite3
+            dist/build-report.json
+            web/
+            app/server.py
           retention-days: 90
           if-no-files-found: error
       - name: Show coverage summary
@@ -39,10 +74,11 @@ jobs:
         run: |
           python3 - <<'PY'
           import json, os, pathlib
-          p = pathlib.Path('data/download-report.json')
-          if p.exists():
-              d = json.loads(p.read_text())
-              summary = {k:v for k,v in d.items() if k not in ('logs','unavailable')}
-              with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
-                  f.write('```json\n' + json.dumps(summary, ensure_ascii=False, indent=2) + '\n```\n')
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              for name in ('data/download-report.json','dist/build-report.json'):
+                  p=pathlib.Path(name)
+                  if not p.exists(): continue
+                  d=json.loads(p.read_text())
+                  d.pop('logs',None); d.pop('unavailable',None); d.pop('failures',None)
+                  f.write(f'### {name}\n```json\n'+json.dumps(d,ensure_ascii=False,indent=2)+'\n```\n')
           PY
