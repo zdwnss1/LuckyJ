@@ -1,0 +1,15 @@
+<!doctype html><html lang="zh"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LuckyJ 牌谱数据库</title><link rel="stylesheet" href="/style.css"></head>
+<body><main><header><div><h1>LuckyJ 牌谱数据库</h1><p>第一阶段：按具体场况与具体切牌检索，不做统计特征命名。</p></div><div id="meta"></div></header>
+<section class="panel"><form id="filters">
+<div class="grid">
+<label>场风<select name="round_wind"><option value="">全部</option><option>E</option><option>S</option><option>W</option></select></label>
+<label>局<input name="kyoku" type="number" min="1" max="4" placeholder="1"></label><label>本场<input name="honba" type="number" min="0" placeholder="0"></label>
+<label>順位<input name="rank" type="number" min="1" max="4" placeholder="1-4"></label><label>自风<select name="seat_wind"><option value="">全部</option><option>E</option><option>S</option><option>W</option><option>N</option></select></label>
+<label>自身点数<input name="target_score" type="number" step="100" placeholder="25000"></label>
+<label>东家点数<input name="score0" type="number" step="100"></label><label>南家点数<input name="score1" type="number" step="100"></label><label>西家点数<input name="score2" type="number" step="100"></label><label>北家点数<input name="score3" type="number" step="100"></label>
+<label>摸牌<input name="draw" placeholder="5m / 0p"></label><label>切牌<input name="discard" placeholder="5m / 0p"></label>
+<label>摸切<select name="tsumogiri"><option value="">全部</option><option value="1">摸切</option><option value="0">手切</option></select></label><label>巡目<input name="turn" type="number" min="1"></label>
+<label class="wide">牌姿（精确匹配，空格分隔，如 1m 2m 3m ...）<input name="hand"></label>
+</div><div class="actions"><button>搜索</button><button type="reset" class="secondary">清空</button></div></form></section>
+<section><div class="summary" id="summary">载入中…</div><div id="results"></div><button id="more" hidden>继续载入</button></section>
+</main><script src="/app.js"></script></body></html>
