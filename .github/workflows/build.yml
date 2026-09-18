@@ -1,0 +1,84 @@
+name: Build LuckyJ database
+on:
+  workflow_dispatch:
+    inputs:
+      source_run:
+        description: Completed Download LuckyJ archive run ID
+        required: true
+        default: '35348255696'
+  workflow_run:
+    workflows: ['Download LuckyJ archive']
+    types: [completed]
+    branches: [main]
+  push:
+    branches: [main]
+    paths: ['.github/workflows/build.yml']
+permissions:
+  contents: read
+  actions: read
+concurrency:
+  group: luckyj-database-release
+  cancel-in-progress: false
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: write
+      actions: read
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Resolve source archive
+        id: source
+        run: |
+          python3 - <<'PY'
+          import json,os
+          event=json.load(open(os.environ['GITHUB_EVENT_PATH']))
+          value=event.get('workflow_run',{}).get('id') or event.get('inputs',{}).get('source_run') or '35348255696'
+          if not str(value).isdigit():raise ValueError('Invalid source run ID')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'run_id={value}\n')
+          PY
+      - name: Await the current archive job
+        env:
+          SOURCE_RUN: ${{ steps.source.outputs.run_id }}
+        run: |
+          for i in $(seq 1 120); do
+            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq .status)
+            if [ "$status" = completed ]; then exit 0; fi
+            sleep 15
+          done
+          echo 'Source archive is not complete; no data package published.' >&2
+          exit 1
+      - uses: actions/download-artifact@v4
+        with:
+          name: luckyj-raw-archive
+          run-id: ${{ steps.source.outputs.run_id }}
+          github-token: ${{ github.token }}
+          path: data
+      - name: Unit and API tests
+        run: python3 -m unittest discover -s tests -v
+      - name: Reconstruct every linked game
+        run: python3 -m luckyj build --data data
+      - name: Package exact code and verified data
+        run: python3 scripts/package.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: luckyj-complete-database
+          path: |
+            release/
+            data/index-report.json
+          retention-days: 90
+          if-no-files-found: warn
+      - name: Publish versioned data snapshot
+        if: success()
+        run: |
+          gh release create "phase1-data-$GITHUB_RUN_ID" \
+            --target "$(git rev-parse HEAD)" \
+            --title 'LuckyJ · Phase 1 database snapshot' \
+            --notes-file release/release-notes.md \
+            release/LuckyJ-phase1.zip release/SHA256SUMS.txt release/index-report.json release/download-report.json

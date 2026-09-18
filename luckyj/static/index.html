@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>LuckyJ · 牌谱索引</title><link rel="stylesheet" href="style.css"><script src="app.js" defer></script></head>
+<body>
+<header class="topbar"><a class="brand" href="./">LuckyJ<span>牌谱索引</span></a><span class="phase">PHASE 01 / 原始决策</span></header>
+<main>
+<section class="hero"><div><div class="eyebrow">ⓝLuckyJ · TENHOU REPLAY ARCHIVE</div><h1>具体牌局，<br class="mobile-only">双向检索。</h1><p>从场况找到切牌，从切牌回到场况。每条结果，都是牌谱中真实发生的一步。</p></div><div class="hero-mark" aria-hidden="true"><span>發</span><small>LUCKY J</small></div></section>
+<section class="coverage" aria-label="数据覆盖"><div><strong id="games">—</strong><span>已入库牌谱</span></div><div><strong id="rounds">—</strong><span>原始局记录</span></div><div><strong id="decisions">—</strong><span>切牌快照</span></div><div><strong id="missing">—</strong><span>源站无链接</span></div><a href="api/coverage" target="_blank" rel="noopener">覆盖报告 ↗</a></section>
+<p id="coverageNote" class="coverage-note" role="status">正在读取数据覆盖情况…</p>
+<div class="workspace">
+<aside class="sidebar">
+<div class="switch" role="group" aria-label="检索方向"><button type="button" id="contextMode" class="active">场况 → 切牌</button><button type="button" id="actionMode">切牌 → 场况</button></div>
+<form id="filters">
+<div id="filterSections">
+<fieldset id="contextFields"><legend><span>01</span> 场况</legend>
+<div class="row"><label>场风<select name="wind"><option value="">不限</option><option value="0">东场</option><option value="1">南场</option><option value="2">西场</option><option value="3">北场</option></select></label><label>局数<select name="hand_no"><option value="">不限</option><option>1</option><option>2</option><option>3</option><option>4</option></select></label><label>自风<select name="seat_wind"><option value="">不限</option><option value="0">东 / 庄家</option><option value="1">南</option><option value="2">西</option><option value="3">北</option></select></label></div>
+<label>本场数</label><div class="range"><input name="honba_min" type="number" min="0" max="100" placeholder="最少" aria-label="最少本场数"><span>—</span><input name="honba_max" type="number" min="0" max="100" placeholder="最多" aria-label="最多本场数"></div>
+<label>分数与次位口径<select name="basis"><option value="decision">切牌前 · 实时分数</option><option value="round_start">本局开始 · 起始分数</option></select></label>
+<label>LuckyJ 次位<select name="rank0"><option value="">不限</option><option value="1">一位</option><option value="2">二位</option><option value="3">三位</option><option value="4">四位</option></select></label>
+<label>LuckyJ 持点</label><div class="range"><input name="score0_min" type="number" step="100" placeholder="最低分" aria-label="LuckyJ最低分"><span>—</span><input name="score0_max" type="number" step="100" placeholder="最高分" aria-label="LuckyJ最高分"></div>
+<details><summary>他家分数与次位</summary><div id="opponents"></div></details>
+<label>本局第几次切牌</label><div class="range"><input name="turn_min" type="number" min="1" max="100" placeholder="开始" aria-label="最早切牌序号"><span>—</span><input name="turn_max" type="number" min="1" max="100" placeholder="结束" aria-label="最晚切牌序号"></div>
+<p class="hint">切牌序号只计 LuckyJ 自己的出牌；同分按起家席序排序。</p>
+</fieldset>
+<fieldset id="actionFields"><legend><span>02</span> 手牌与切牌</legend>
+<label>具体手牌<input name="hand" placeholder="例如 233m05p77z" autocomplete="off" spellcheck="false"></label>
+<select name="hand_mode" aria-label="手牌匹配方式"><option value="contains">包含这些牌（张数也匹配）</option><option value="exact">完整暗手牌相同</option></select>
+<p class="hint">暗手牌含本次摸牌，不含副露。0 表示赤五，z 表示字牌（东南西北白发中 = 1–7）。</p>
+<div class="row"><label>摸入<input name="draw" placeholder="例如 3m" autocomplete="off" spellcheck="false"></label><label>切出<input name="discard" placeholder="例如 2m" autocomplete="off" spellcheck="false"></label></div>
+<label>连续切牌序列<input name="sequence" placeholder="例如 9m1p7z" autocomplete="off" spellcheck="false"></label><p class="hint">同一局内，以当前切牌为结尾的连续序列；中途被吃碰也不跳过自己的切牌。</p>
+<div class="row"><label>出牌方式<select name="tsumogiri"><option value="">不限</option><option value="0">手切</option><option value="1">摸切</option></select></label><label>本次宣言立直<select name="riichi_declared"><option value="">不限</option><option value="1">是</option><option value="0">否</option></select></label></div>
+<label class="check"><input type="checkbox" id="red" checked>区分赤五与普通五</label>
+</fieldset>
+</div>
+<div class="form-actions"><button class="primary" type="submit">检索牌谱 <span>↗</span></button><button id="reset" type="button">重置</button></div>
+</form>
+</aside>
+<section class="results-panel" aria-label="检索结果">
+<div class="result-head"><div><div class="eyebrow">DECISION INDEX</div><h2 id="resultTitle">切牌记录</h2></div><span id="resultCount" role="status">—</span></div>
+<div class="examples"><span>试一试</span><button type="button" data-example="south4">南4 · 四位</button><button type="button" data-example="233">手持 233m，切 2m</button><button type="button" data-example="red">切赤五筒</button></div>
+<div id="querySummary" class="query-summary"></div>
+<div id="notice" class="notice" role="status" hidden></div>
+<div id="results"></div>
+<button id="more" class="more" type="button" hidden>载入更多记录</button>
+<div class="bottom-note">本阶段不计算向听数、牌效、危险度或战术标签。切牌前快照只展示当时可见的信息。</div>
+</section>
+</div>
+</main>
+<dialog id="detail"><div class="dialog-top"><div><div class="eyebrow">PRE-DISCARD SNAPSHOT</div><h2 id="detailTitle">切牌前快照</h2></div><button type="button" id="closeDetail" aria-label="关闭详情">✕</button></div><div id="detailBody"></div><div class="dialog-bottom"><button type="button" id="previous">← 本局上一步</button><a id="official" target="_blank" rel="noopener">打开天凤原谱 ↗</a><button type="button" id="next">本局下一步 →</button></div></dialog>
+<footer>LuckyJ · 以原始牌谱为依据，不以结果解释决策。<span>本地只读数据库 · V0.1</span></footer>
+</body></html>
