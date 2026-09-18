@@ -3,9 +3,13 @@ on:
   workflow_dispatch:
     inputs:
       source_run:
-        description: Completed Download LuckyJ archive run ID
+        description: Completed raw archive run ID
         required: true
-        default: '35348255696'
+        default: '35348448190'
+      artifact_name:
+        description: Raw archive artifact name
+        required: true
+        default: luckyj-raw
   workflow_run:
     workflows: ['Download LuckyJ archive']
     types: [completed]
@@ -17,52 +21,61 @@ permissions:
   contents: read
   actions: read
 concurrency:
-  group: luckyj-database-release
+  group: luckyj-verified-database-release-v2
   cancel-in-progress: false
 jobs:
   build:
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 30
     permissions:
       contents: write
-      actions: read
+      actions: write
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: main
-      - name: Resolve source archive
+      - name: Stop superseded bootstrap jobs only
+        if: github.event_name == 'push'
+        run: |
+          # These exact two bootstrap jobs belong to this implementation.
+          # The separate phase1-database branch and its completed archive are untouched.
+          for run in 35349571588 35348255696; do
+            state=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$run" --jq .status)
+            if [ "$state" != completed ]; then
+              gh api --method POST "repos/$GITHUB_REPOSITORY/actions/runs/$run/cancel" || true
+            fi
+          done
+      - name: Resolve completed source archive
         id: source
         run: |
           python3 - <<'PY'
-          import json,os
+          import json,os,re
           event=json.load(open(os.environ['GITHUB_EVENT_PATH']))
-          value=event.get('workflow_run',{}).get('id') or event.get('inputs',{}).get('source_run') or '35348255696'
-          if not str(value).isdigit():raise ValueError('Invalid source run ID')
-          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'run_id={value}\n')
+          triggered=event.get('workflow_run',{})
+          value=triggered.get('id') or event.get('inputs',{}).get('source_run') or '35348448190'
+          name='luckyj-raw-archive' if triggered else event.get('inputs',{}).get('artifact_name','luckyj-raw')
+          if not str(value).isdigit() or not re.fullmatch(r'[A-Za-z0-9_-]+',name):raise ValueError('Invalid source selection')
+          with open(os.environ['GITHUB_OUTPUT'],'a') as f:f.write(f'run_id={value}\nartifact_name={name}\n')
           PY
-      - name: Await the current archive job
-        env:
-          SOURCE_RUN: ${{ steps.source.outputs.run_id }}
-        run: |
-          for i in $(seq 1 120); do
-            status=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$SOURCE_RUN" --jq .status)
-            if [ "$status" = completed ]; then exit 0; fi
-            sleep 15
-          done
-          echo 'Source archive is not complete; no data package published.' >&2
-          exit 1
       - uses: actions/download-artifact@v4
         with:
-          name: luckyj-raw-archive
+          name: ${{ steps.source.outputs.artifact_name }}
           run-id: ${{ steps.source.outputs.run_id }}
           github-token: ${{ github.token }}
-          path: data
+          path: source-archive
+      - name: Verify and import every raw checksum
+        run: python3 scripts/import_archive.py --source source-archive --data data
       - name: Unit and API tests
         run: python3 -m unittest discover -s tests -v
       - name: Reconstruct every linked game
         run: python3 -m luckyj build --data data
+      - run: python3 -m pip install playwright==1.55.0
+      - run: python3 -m playwright install --with-deps chromium
+      - name: Verify real browser against full database
+        run: PYTHONPATH=. python3 tests/browser_smoke.py --data data
       - name: Package exact code and verified data
         run: python3 scripts/package.py
       - uses: actions/upload-artifact@v4
@@ -72,6 +85,7 @@ jobs:
           path: |
             release/
             data/index-report.json
+            screenshots/
           retention-days: 90
           if-no-files-found: warn
       - name: Publish versioned data snapshot
@@ -79,6 +93,6 @@ jobs:
         run: |
           gh release create "phase1-data-$GITHUB_RUN_ID" \
             --target "$(git rev-parse HEAD)" \
-            --title 'LuckyJ · Phase 1 database snapshot' \
+            --title 'LuckyJ · Phase 1 verified database' \
             --notes-file release/release-notes.md \
             release/LuckyJ-phase1.zip release/SHA256SUMS.txt release/index-report.json release/download-report.json
