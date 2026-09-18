@@ -1,0 +1,1 @@
+"""LuckyJ Tenhou archive parser."""
