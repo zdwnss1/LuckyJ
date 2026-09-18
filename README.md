@@ -1,4 +1,23 @@
-# LuckyJ · 牌谱索引
+# LuckyJ · 牌谱索引与牌形研究室
+
+## 第二阶段入口
+
+在同一模块化主线上增加：同形/通配搜索、逐牌损存、五个时点向听、合法候选牌理、全量统计与只读MCP接口。
+
+```sh
+# 使用 main 正式数据包的 data/，不是旧 PR #2 的 SQLite
+python -m luckyj enrich --data data
+python -m luckyj serve --data data
+# http://127.0.0.1:8000/research
+```
+
+运行无需第三方依赖；可选 `python -m luckyj native` 编译本地C加速。默认关闭数字反转、排除自己立直后的后续摸切。好形指标有明确版本及计算预算，未决不当成零；全量事实已验证，候选牌理按需缓存。
+
+详见 [研究室使用与指标定义](docs/research.md)、[本轮验收](docs/research-verification.md) 和 [LLM比较配方](examples/follow-vs-terminal.json)。旧检索 `/` 与下述第一阶段接口仍可用。
+
+---
+
+## 第一阶段档案（原有接口）
 
 第一阶段：牌谱屋来源清单 → 天凤完整 XML → SQLite 切牌前快照 → 中文网页双向检索。
 
@@ -24,7 +43,7 @@ python -m luckyj serve --data data --port 8000
 
 2026-09-18 初次实测源站返回 **1,321 条记录，1,256 个不同的可下载牌谱链接，65 条没有链接**。这不意味着 1,321 场均已下载。每次下载和构建的最终结果分别见 `data/download-report.json`、`data/index-report.json`，前端顶部也显示覆盖状态。
 
-`all_linked_logs_indexed` 表示当前清单所有带链接牌谱已入库；`all_source_records_indexed` 才表示所有来源记录都拥有牌谱并已入库。65 条无链接记录保留在报告中，不伪造牌谱，不当作零切牌记录混入查询。下载返回成功也不表示全量解析成功。范围仅限来源清单快照，不声称涵盖该账号所有历史对局。
+`all_linked_logs_indexed` 表示当前清单所有带链接牌谱已入库；`all_source_records_indexed` 才表示所有来源记录都拥有牌谱并已入库。65 条无链接记录保留在报告中，不伪造牌谱，不当作零切牌样本混入查询。下载返回成功也不表示全量解析成功。范围仅限来源清单快照，不声称涵盖该账号所有历史对局。
 
 GitHub Actions 的 **Download LuckyJ archive** 生成原始归档；**Build LuckyJ database** 从归档生成完整数据库及可运行数据包。Actions 工件有保存期限，长期备份应保存完整数据包。成功发布的数据快照在仓库 Releases 中，不把大型 SQLite 写入 Git 历史。
 

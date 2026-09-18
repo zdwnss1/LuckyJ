@@ -1,0 +1,5 @@
+{
+  "filters": {"turn_min": 1, "turn_max": 2, "sanshoku": "exclude", "exclude_locked": 1},
+  "a": {"kind": "follow_honor", "role": 0, "singleton": true},
+  "b": {"kind": "local", "patterns": ["14", "134", "124"], "cut": 1, "window": [1, 4], "reverse": false}
+}
