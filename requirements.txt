@@ -1,0 +1,2 @@
+# Optional for core search; required for hypothetical win-yaku/han enrichment.
+mahjong==1.4.0

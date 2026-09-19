@@ -1,0 +1,81 @@
+{
+  "complete": true,
+  "source_sha256": "5c2e85c06115f4f188c6ce573ed9077b00ef09af3734f5ab6164f79e339e662d",
+  "model_sha256": "24b66a0d5cc2585aeda73a00210c0c8ca3a65a05daf865095f55f96d9f906e32",
+  "counts": {
+    "decisions": 156324,
+    "win_not_tenpai": 131106,
+    "linked_meld_observations": 153630,
+    "win_computed": 25218,
+    "win_outcomes": 97342,
+    "opportunities": 41236,
+    "opportunity_not_selected": 32249,
+    "opportunity_selected": 7457,
+    "opportunity_censored": 1019,
+    "opportunity_chose_win": 511,
+    "games": 1256
+  },
+  "actual_call_events": 7457,
+  "actual_calls_equal_selected_opportunities": true,
+  "failures": [],
+  "examples": {
+    "sixth_6s": {
+      "log_id": "2023043009gm-0029-0000-516dc820",
+      "event_seq": 760
+    }
+  },
+  "query_checks": [
+    {
+      "total": 1525,
+      "games": 522,
+      "rounds": 666,
+      "query_hash": "31793bda4d1e56ec36f61c470832cf237b0447533ade875e26ffadef28ce2a44",
+      "filters": {
+        "hand": "[c]",
+        "turn_max": "6"
+      }
+    },
+    {
+      "total": 202,
+      "games": 175,
+      "rounds": 194,
+      "query_hash": "c5e60da95d15f5690446614904259c74d4a6f7a1ae068e87586ca6c1e2730f42",
+      "filters": {
+        "win_yaku": "平和",
+        "win_method": "ron",
+        "turn_max": "6"
+      }
+    },
+    {
+      "total": 911,
+      "games": 481,
+      "rounds": 613,
+      "query_hash": "524b45239cf7b46a1626c885a0124f6db23965e50834aa1a6332a7f501d4242a",
+      "filters": {
+        "intent_state": "fold",
+        "intent_min": "80"
+      }
+    }
+  ],
+  "ankan_opportunities": {
+    "total": 968,
+    "status_counts": {
+      "selected": 180,
+      "not_selected": 782,
+      "chose_win": 6
+    },
+    "resolved_response_opportunities": 962,
+    "choice_counts": {
+      "queried_kind": 180,
+      "not_selected": 782,
+      "chose_win": 6
+    }
+  },
+  "limits": [
+    "Meld decoding is shared; this is not an independent rules proof.",
+    "Yaku values use pinned upstream scoring; profile contract checked, not independently rescored here.",
+    "Posterior algebra checked, not accuracy or calibration.",
+    "No private opponent hands or final outcomes used for online inference."
+  ],
+  "full_receipt": "Regenerate data/calls-intent-audit.json with scripts/audit_calls_intent.py for complete embedded query recipes."
+}

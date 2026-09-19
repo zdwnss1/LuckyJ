@@ -1,4 +1,39 @@
-# LuckyJ · 牌谱索引
+# LuckyJ · 牌谱索引与牌形研究室
+
+## 重点标记更新
+
+研究室现已重点显示跟切、立直宣言切牌、默听、退向听，并提供筛选与可重叠全集计数；新增副露状态筛选。更新后重新执行 `python -m luckyj enrich --data data`。详见 [标记、公网与副露研究设计](docs/highlights-public-and-melds.md)。公网部署仍处于方案阶段，未开启站点。
+
+## 副露与逐手研究更新
+
+已加入暗手+副露方括号查询、鸣牌/杠机会索引、牌河虚影与副露同色配对、听牌后的假设和牌役番、逐手押引专家HMM及人工复核入口。
+
+```sh
+python -m pip install -r requirements.txt
+python -m luckyj enrich --data data
+python -m luckyj serve --data data
+```
+
+研究索引版本为 `research-1.2`。役番计算需要固定的 `mahjong==1.4.0`；其他核心搜索仍可无第三方依赖运行。押引后验**未经人工标签校准**，在线与未来辅助复盘分开，不当作意图真值或准确率。见 [副露、役番和逐手推断](docs/calls-yaku-intent.md)。
+
+## 第二阶段入口
+
+在同一模块化主线上增加：同形/通配搜索、逐牌损存、五个时点向听、合法候选牌理、全量统计与只读MCP接口。
+
+```sh
+# 使用 main 正式数据包的 data/，不是旧 PR #2 的 SQLite
+python -m luckyj enrich --data data
+python -m luckyj serve --data data
+# http://127.0.0.1:8000/research
+```
+
+运行无需第三方依赖；可选 `python -m luckyj native` 编译本地C加速。默认关闭数字反转、排除自己立直后的后续摸切。好形指标有明确版本及计算预算，未决不当成零；全量事实已验证，候选牌理按需缓存。
+
+详见 [研究室使用与指标定义](docs/research.md)、[本轮验收](docs/research-verification.md) 和 [LLM比较配方](examples/follow-vs-terminal.json)。旧检索 `/` 与下述第一阶段接口仍可用。
+
+---
+
+## 第一阶段档案（原有接口）
 
 第一阶段：牌谱屋来源清单 → 天凤完整 XML → SQLite 切牌前快照 → 中文网页双向检索。
 
@@ -24,14 +59,14 @@ python -m luckyj serve --data data --port 8000
 
 2026-09-18 初次实测源站返回 **1,321 条记录，1,256 个不同的可下载牌谱链接，65 条没有链接**。这不意味着 1,321 场均已下载。每次下载和构建的最终结果分别见 `data/download-report.json`、`data/index-report.json`，前端顶部也显示覆盖状态。
 
-`all_linked_logs_indexed` 表示当前清单所有带链接牌谱已入库；`all_source_records_indexed` 才表示所有来源记录都拥有牌谱并已入库。65 条无链接记录保留在报告中，不伪造牌谱，不当作零切牌记录混入查询。下载返回成功也不表示全量解析成功。范围仅限来源清单快照，不声称涵盖该账号所有历史对局。
+`all_linked_logs_indexed` 表示当前清单所有带链接牌谱已入库；`all_source_records_indexed` 才表示所有来源记录都拥有牌谱并已入库。65 条无链接记录保留在报告中，不伪造牌谱，不当作零切牌样本混入查询。下载返回成功也不表示全量解析成功。范围仅限来源清单快照，不声称涵盖该账号所有历史对局。
 
 GitHub Actions 的 **Download LuckyJ archive** 生成原始归档；**Build LuckyJ database** 从归档生成完整数据库及可运行数据包。Actions 工件有保存期限，长期备份应保存完整数据包。成功发布的数据快照在仓库 Releases 中，不把大型 SQLite 写入 Git 历史。
 
 ## 可以怎样查询
 
 - **场况 → 切牌**：东/南/西/北场、第几局、本场数、LuckyJ 及下家/对家/上家的分数范围和次位、自风、LuckyJ 本局第几次切牌。
-- **切牌 → 场况**：具体暗手牌包含或完全相同、摸入牌、切出牌、手切/摸切、是否本次宣言立直、以当前切牌结尾的连续切牌序列。
+- **切牌 → 场况**：具体暗手牌包含或完全相同、摸入牌、切出牌、手切/摸切、本次是否宣言立直、以当前一步为结尾的连续切牌序列。
 - 两组条件可以任意组合。两个入口是筛选顺序不同，不是两个彼此隔离的库。
 
 例如：南 4 局、四位、持点 12,000–20,000；手牌包含 `233m` 且切 `2m`；摸 `3m` 切 `2m`；连续切牌 `9m1p7z`；精确切赤五筒 `0p`。

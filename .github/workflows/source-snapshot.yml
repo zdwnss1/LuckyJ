@@ -1,0 +1,29 @@
+name: Reproducible source snapshot
+on:
+  workflow_dispatch:
+  push:
+    branches: [phase2-research-engine]
+    paths: ['.github/workflows/source-snapshot.yml']
+permissions:
+  contents: read
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Package tracked source and pinned optional scoring dependency
+        run: |
+          mkdir -p snapshot/dependencies
+          git archive --format=tar HEAD > snapshot/source.tar
+          git rev-parse HEAD > snapshot/COMMIT.txt
+          python -m pip download --no-deps --only-binary=:all: mahjong==1.4.0 -d snapshot/dependencies
+          (cd snapshot && sha256sum source.tar dependencies/* > SHA256SUMS.txt)
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reproducible-source
+          path: snapshot/
+          retention-days: 30
+          if-no-files-found: error

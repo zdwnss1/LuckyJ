@@ -11,7 +11,16 @@ from .store import connect, search, detail
 STATIC = Path(__file__).parent / 'static'
 
 
-def handler(data: Path):
+def handler(data: Path, good_budget=12000):
+    from .research import Research, QueryLimitError, MetricUnknownError, schema
+    import threading
+    engine = None
+    engine_lock = threading.Lock()
+    def research():
+        nonlocal engine
+        with engine_lock:
+            if engine is None: engine = Research(data,good_budget=good_budget)
+            return engine
     class Handler(BaseHTTPRequestHandler):
         def send(self, status, body, mime='application/json; charset=utf-8'):
             if isinstance(body, (dict, list)):
@@ -32,7 +41,12 @@ def handler(data: Path):
             if len(self.path) > 8192:
                 return self.send(414,{'error':'请求过长'})
             url = urlsplit(self.path)
-            static = {'/':('index.html','text/html; charset=utf-8'),
+            static = {'/research':('research.html','text/html; charset=utf-8'),
+                      '/research.js':('research.js','text/javascript; charset=utf-8'),
+                      '/extensions.js':('extensions.js','text/javascript; charset=utf-8'),
+                      '/extensions.css':('extensions.css','text/css; charset=utf-8'),
+                      '/research.css':('research.css','text/css; charset=utf-8'),
+                      '/':('index.html','text/html; charset=utf-8'),
                       '/app.js':('app.js','text/javascript; charset=utf-8'),
                       '/style.css':('style.css','text/css; charset=utf-8')}
             if url.path in static:
@@ -49,6 +63,19 @@ def handler(data: Path):
                 if any(len(v) != 1 for v in q_multi.values()):
                     raise ValueError('不允许重复筛选字段')
                 q = {k:v[0] for k,v in q_multi.items()}
+                if url.path.startswith('/api/research/'):
+                    if url.path in ('/api/research/opportunities','/api/research/call-events'):
+                        from .call_queries import opportunities, call_events
+                        return self.send(200,(opportunities if url.path.endswith('opportunities') else call_events)(research(),q))
+                    if url.path == '/api/research/schema': return self.send(200,schema())
+                    if url.path == '/api/research/search': return self.send(200,research().search(q))
+                    if url.path == '/api/research/stats': return self.send(200,research().stats(q))
+                    if url.path.startswith('/api/research/decisions/'):
+                        identifier=url.path.rsplit('/',1)[-1]
+                        if not identifier.isdigit() or len(identifier)>18:raise ValueError('切牌 ID 无效')
+                        result=research().decision(int(identifier),q)
+                        return self.send(200,result) if result else self.send(404,{'error':'未找到'})
+                    return self.send(404,{'error':'未找到研究接口'})
                 with closing(connect(data/'luckyj.sqlite')) as db:
                     if url.path == '/api/status':
                         report = json.loads(db.execute("SELECT value FROM metadata WHERE key='report'").fetchone()[0])
@@ -72,17 +99,38 @@ def handler(data: Path):
                     return self.send(404,{'error':'未找到接口'})
             except ValueError as exc:
                 return self.send(400,{'error':str(exc)})
+            except (QueryLimitError,MetricUnknownError) as exc:
+                return self.send(503,{'complete':False,'error':str(exc)})
             except sqlite3.Error:
                 return self.send(500,{'error':'数据库读取失败；请检查版本与文件完整性'})
+
+        def do_POST(self):
+            if urlsplit(self.path).path!='/api/research/compare':return self.send(404,{'error':'未找到'})
+            try:
+                # Local JSON endpoint: reject cross-origin browser requests.
+                origin=self.headers.get('Origin')
+                if origin and urlsplit(origin).netloc!=self.headers.get('Host'):
+                    return self.send(403,{'error':'跨来源请求被拒绝'})
+                if self.headers.get('Content-Type','').split(';')[0]!='application/json':
+                    return self.send(415,{'error':'使用 application/json'})
+                length=int(self.headers.get('Content-Length','0'))
+                if not 0<length<=65536:return self.send(413,{'error':'请求体长度无效'})
+                self.connection.settimeout(10)
+                body=json.loads(self.rfile.read(length))
+                return self.send(200,research().compare(body))
+            except (ValueError,TypeError) as exc:return self.send(400,{'error':str(exc)})
+            except TimeoutError:return self.send(408,{'error':'请求体读取超时'})
+            except (QueryLimitError,MetricUnknownError) as exc:return self.send(503,{'complete':False,'error':str(exc)})
+            except sqlite3.Error:return self.send(503,{'complete':False,'error':'数据库读取失败或查询超时'})
 
         def log_message(self, fmt, *args):
             print(fmt % args)
     return Handler
 
 
-def serve(data: Path, host='127.0.0.1', port=8000):
-    print(f'LuckyJ: http://{host}:{port}  |  data={data.resolve()}', flush=True)
-    with ThreadingHTTPServer((host,port),handler(data)) as server:
+def serve(data: Path, host='127.0.0.1', port=8000, good_budget=12000):
+    print(f'LuckyJ research: http://{host}:{port}/research  |  legacy: /  |  data={data.resolve()}', flush=True)
+    with ThreadingHTTPServer((host,port),handler(data,good_budget=good_budget)) as server:
         try:
             server.serve_forever()
         except KeyboardInterrupt:

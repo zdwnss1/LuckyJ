@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "luckyj": {
+      "command": "python",
+      "args": ["/ABSOLUTE/PATH/LuckyJ/scripts/mcp_server.py", "--data", "/ABSOLUTE/PATH/LuckyJ/data"]
+    }
+  }
+}

@@ -1,0 +1,31 @@
+{
+  "version": "intent-hmm-expert-1",
+  "status": "expert_assumptions_uncalibrated",
+  "states": ["push", "mawashi", "fold"],
+  "temperature": 1.35,
+  "context_reset": 0.30,
+  "lookahead": 3,
+  "context_priors": {
+    "none": [0.78, 0.17, 0.05],
+    "open": [0.55, 0.30, 0.15],
+    "riichi": [0.45, 0.30, 0.25],
+    "multi": [0.30, 0.35, 0.35]
+  },
+  "transition": [[0.86, 0.10, 0.04], [0.16, 0.72, 0.12], [0.07, 0.13, 0.80]],
+  "tradeoff_likelihoods": {
+    "neutral": [0.55, 0.25, 0.20],
+    "safe_preserve": [0.15, 0.48, 0.15],
+    "efficiency_loss_without_safety": [0.08, 0.06, 0.06],
+    "small_sacrifice_safer": [0.04, 0.15, 0.16],
+    "major_sacrifice_safer": [0.01, 0.04, 0.39],
+    "unsafe_fast": [0.17, 0.02, 0.04]
+  },
+  "thresholds": {"major_ukeire_loss": 0.45, "small_ukeire_loss": 0.15, "safer_margin": 0.28, "label_posterior": 0.62},
+  "notes": [
+    "The likelihood columns sum to one per hidden state; values are declared expert assumptions, not fitted frequencies.",
+    "Retreat, efficiency loss, follow-discard and safety improvement form ONE joint tradeoff category to limit double counting.",
+    "Pressure changes the context prior, not an additional repeated likelihood factor.",
+    "No final win/loss or opponents concealed tiles enter any feature. Review uses at most the next 3 own decisions.",
+    "Sensitivity envelope is not a credible interval. Calibrated probability stays null until independent human labels are evaluated."
+  ]
+}
