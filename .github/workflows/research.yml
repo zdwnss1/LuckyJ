@@ -19,13 +19,14 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python }}
+      - run: python -m pip install -r requirements.txt
       - name: Pure Python regression suite
         run: LUCKYJ_PURE_PYTHON=1 python -m unittest discover -s tests -v
       - name: Native differential and regression suite
         run: |
           python -m luckyj native
           python -m unittest discover -s tests -v
-      - run: node --check luckyj/static/research.js
+      - run: node --check luckyj/static/research.js && node --check luckyj/static/extensions.js
   browser:
     runs-on: ubuntu-latest
     timeout-minutes: 15
@@ -34,14 +35,19 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.13'
+      - run: python -m pip install -r requirements.txt
       - run: python -m luckyj native
       - run: python -m pip install playwright==1.55.0
       - run: python -m playwright install --with-deps chromium
       - name: Real HTTP browser test, offline synthetic fixtures
         run: PYTHONPATH=. python tests/browser_research.py
+      - name: Calls, yaku and inference browser acceptance
+        run: PYTHONPATH=. python tests/browser_calls_intent.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: research-browser-verification
-          path: screenshots/research/
+          path: |
+            screenshots/research/
+            screenshots/calls-intent/
           retention-days: 30

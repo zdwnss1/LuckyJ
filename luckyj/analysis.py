@@ -9,7 +9,7 @@ from functools import lru_cache
 from .tiles import kind, token, normal
 from .shanten import shanten, regular
 
-VERSION = 'research-1.1'
+VERSION = 'research-1.2'
 GOOD_RULE = 'shortest-ryanmen-v1'
 TOKENS = tuple(f'{i%9+1}{"mpsz"[i//9]}' for i in range(34)) + ('0m','0p','0s')
 INDEX = {t:i for i,t in enumerate(TOKENS)}

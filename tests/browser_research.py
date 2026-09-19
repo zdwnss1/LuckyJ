@@ -46,9 +46,11 @@ with tempfile.TemporaryDirectory() as tmp:
                     except urllib.error.HTTPError as exc:
                         return {'ok':False,'error':json.load(exc).get('error',str(exc))}
                 page.expose_function('__luckyjHTTP',api_bridge)
-                html=(root/'research.html').read_text().replace('<link rel="stylesheet" href="/research.css">','').replace('<script src="/research.js" defer></script>','')
+                html=(root/'research.html').read_text().replace('<link rel="stylesheet" href="/research.css">','').replace('<script src="/research.js" defer></script>','').replace('<script src="/extensions.js" defer></script>','').replace('<link rel="stylesheet" href="/extensions.css">','')
                 page.set_content(html)
                 page.add_style_tag(content=(root/'research.css').read_text())
+                page.add_style_tag(content=(root/'extensions.css').read_text())
+                page.add_script_tag(content=(root/'extensions.js').read_text())
                 script=(root/'research.js').read_text()
                 import re
                 script=re.sub(r'^async function api\(.*$', "async function api(path,options={}){const r=await window.__luckyjHTTP(path,options.method||'GET',options.body||null);if(!r.ok)throw Error(r.error);return r.data;}",script,flags=re.M)
@@ -79,7 +81,7 @@ with tempfile.TemporaryDirectory() as tmp:
             expect(page.locator('.case').first).to_be_visible()
             checks.append('Histogram drilldown preserves original cohort denominator')
             page.locator('.case .detail-open').first.click()
-            expect(page.locator('.candidate-table')).to_be_visible()
+            expect(page.locator('.candidate-table').first).to_be_visible()
             expect(page.locator('.table-layout .seat')).to_have_count(4)
             before=page.locator('.seat-0 .river .tile').count()
             page.get_by_role('button',name='执行这次切牌',exact=True).click()
@@ -125,7 +127,7 @@ with tempfile.TemporaryDirectory() as tmp:
             assert page.evaluate('document.documentElement.scrollWidth <= innerWidth'),page.evaluate('document.documentElement.scrollWidth')
             page.screenshot(path=str(a.output/'mobile.png'),full_page=True)
             page.locator('.case .detail-open').first.click()
-            expect(page.locator('.candidate-table')).to_be_visible()
+            expect(page.locator('.candidate-table').first).to_be_visible()
             assert page.evaluate('document.querySelector("dialog").getBoundingClientRect().right <= innerWidth')
             page.screenshot(path=str(a.output/'mobile-detail.png'))
             checks.append('390px layout and detail stay within viewport')

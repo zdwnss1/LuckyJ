@@ -1,7 +1,8 @@
 """Read-only research API: exact cohorts, bounded computation, auditable recipes.
 
 The mutable metrics cache is separate from both immutable source and facts DBs.
-No eval, model-authored SQL, hidden-state inference or sample-based totals.
+No eval, model-authored SQL, private-opponent-hand access or sample-based totals.
+Experimental intent hypotheses are separately versioned and explicitly uncalibrated.
 """
 from __future__ import annotations
 import bisect
@@ -15,7 +16,9 @@ import threading
 import time
 from .analysis import VERSION, GOOD_RULE, analyze, TOKENS
 from .enrich import file_sha
-from .patterns import Matcher, map_token
+from .patterns import map_token
+from .meld_patterns import Matcher
+from . import win_projection
 from .store import connect, filters, summary, detail, packed, unpacked
 from .tiles import kind, normal
 from .decision_flags import VERSION as FLAGS_VERSION, FLAG_KEYS, FLAG_DEFINITIONS, new_facets, count_facets
@@ -23,7 +26,7 @@ from .decision_flags import VERSION as FLAGS_VERSION, FLAG_KEYS, FLAG_DEFINITION
 LEGACY={'basis','wind','hand_no','honba_min','honba_max','seat_wind','turn_min','turn_max',
         'tsumogiri','riichi_declared','log_id','round_seq'}
 LEGACY.update(f'{p}{i}{s}' for i in range(4) for p,sufs in [('rank',['']),('score',['_min','_max'])] for s in sufs)
-PATTERN={'hand','supply','suits','reverse','honors','honor_roles','red','draw','discard','dora_position','dora_tiles'}
+PATTERN={'hand','supply','suits','reverse','honors','honor_roles','red','draw','discard','dora_position','dora_tiles','meld_mode'}
 RANGES={'riichi':(0,3,'opponent_riichi'),'dora':(0,100,'dora_count'),'red_count':(0,3,'red_count'),
         'gap_above':(0,1000000,'gap_above'),'gap_below':(0,1000000,'gap_below'),
         'gap_leader':(0,1000000,'gap_leader'),'gap_last':(0,1000000,'gap_last')}
@@ -34,6 +37,7 @@ KNOWN=LEGACY|PATTERN|set(FLAG_KEYS)|{'shanten','shanten_min','shanten_max','shan
                     'max_ukeire','max_good','ukeire_min','ukeire_max','good_min','good_max',
                     'after','limit','bucket','raw_bucket','metrics','initial_shanten'}
 KNOWN.update(p+'_'+s for p in RANGES for s in ('min','max'))
+KNOWN.update(win_projection.FILTERS|{'win_enabled','intent_state','intent_min','intent_mode'})
 
 
 class QueryLimitError(RuntimeError):pass
@@ -54,6 +58,12 @@ def validate(q):
     if any(not isinstance(v,(str,int)) or len(str(v))>600 for v in q.values()):raise ValueError('检索参数类型或长度无效')
     q={k:str(v) for k,v in q.items() if v!=''}
     Matcher(q)
+    win_projection.validate_filters(q)
+    integer(q,'win_enabled',0,1)
+    if q.get('intent_state','') not in ('','push','mawashi','fold'):raise ValueError('intent_state应为push/mawashi/fold')
+    if q.get('intent_mode','online') not in ('online','review'):raise ValueError('intent_mode应为online/review')
+    integer(q,'intent_min',0,100)
+    if 'intent_min' in q and not q.get('intent_state'):raise ValueError('置信筛选需指定intent_state')
     filters({k:v for k,v in q.items() if k in LEGACY})
     for key in ('exclude_locked','max_ukeire','max_good','metrics'):
         integer(q,key,0,1)
@@ -87,13 +97,20 @@ def clauses(q):
         if v is not None:parts.append(f'r.{column}{op}?');args.append(v)
     if 'initial_shanten' in q:parts.append('r.initial_shanten=?');args.append(int(q['initial_shanten']))
     if q.get('sanshoku','any')!='any':parts.append('r.sanshoku_obvious=?');args.append(int(q['sanshoku']=='require'))
+    if win_projection.active(q):parts.append('r.after_shanten=0')
+    if q.get('intent_state'):
+        prefix='intent' if q.get('intent_mode','online')=='online' else 'review'
+        parts.append('r.'+prefix+'_'+q['intent_state']+'>=?')
+        args.append(int(q.get('intent_min','62'))/100)
     return ' AND '.join(parts),args
 
 
 def recipe(q):
     return {'schema':'luckyj-query-v1','metric_version':VERSION,'good_rule':GOOD_RULE,
             'decision_flags_version':FLAGS_VERSION,'decision_flags':FLAG_DEFINITIONS,
-            'meld_scope':'open-meld STATE at each discard; ankan is separate; not call-event or opportunity frequency',
+            'meld_scope':'fixed meld brackets and concealed tiles share one mapping; ankan is separate; event/opportunity endpoints have independent denominators',
+            'win_projection':{'version':win_projection.VERSION,'scope':'conditional values after actual discard, tenpai only; no future result/ura/ippatsu'},
+            'intent':{'mode':q.get('intent_mode','online'),'status':'expert HMM; NOT empirically calibrated probability','review_uses_future':q.get('intent_mode')=='review'},
             'filters':q,'defaults':{'suits':True,'reverse':False,'honors':'roles','red':False,
                                   'honor_roles':[1,0,0,0,1,1,1],'exclude_locked':True,'shanten_basis':'after'},
             'remaining':'unseen, not omniscient live wall; signed supply constraints never modify a sample',
@@ -178,6 +195,7 @@ class Research:
                     f=unpacked(r['facts'])
                     match=matcher.matches(f['hand37'],f,r['wind'],r['seat_wind'],r['draw'],r['discard'],deadline=deadline)
                     if match is None:continue
+                    if win_projection.active(q) and not win_projection.matches(f['win_projection'],q):continue
                     if expensive and not self._metric_filter({**dict(r),'aka':f['aka']},q):continue
                     count_facets(facets,f['annotations']['flags'])
                     labels=match['possible_discards']
@@ -186,7 +204,7 @@ class Research:
                     ids.append(r['id']);buckets[r['id']]=bucket;raw_buckets[r['id']]=r['discard']
                     raw[r['discard']]+=1;normalized[bucket]+=1
                     games.add(r['log_id']);rounds.add((r['log_id'],r['round_seq']))
-            receipt=recipe(q);receipt['source_sha256']=self.receipt['source_sha256'];receipt['good_proof_budget']=self.good_budget
+            receipt=recipe(q);receipt['source_sha256']=self.receipt['source_sha256'];receipt['good_proof_budget']=self.good_budget;receipt['intent_model']=self.receipt.get('intent_model')
             digest=hashlib.sha256(json.dumps(receipt,sort_keys=True).encode()).hexdigest()
             c={'ids':ids,'buckets':buckets,'raw_buckets':raw_buckets,'total':len(ids),'games':len(games),'rounds':len(rounds),
                'raw':dict(raw),'normalized':dict(normalized),'ambiguous_states':ambiguous,
@@ -219,6 +237,7 @@ class Research:
                 item['alignment']=matcher.matches(f['hand37'],f,row['wind'],row['seat_wind'],row['draw'],row['discard'])
                 item['availability']=f
                 item['annotations']=f['annotations']
+                item['own_melds']=f['own_melds'];item['intent']=f['intent'];item['win_projection']=f['win_projection']
                 item['shanten']={k:row[k+'_shanten'] for k in ('initial','before_draw','current','after','best')}
                 if q.get('metrics','1')=='1':
                     a=self.metrics({**dict(row),'aka':f['aka']});item['analysis']=a['selected']
@@ -241,6 +260,8 @@ class Research:
             d['alignment']=matcher.matches(f['hand37'],f,r['wind'],r['seat_wind'],r['draw'],r['discard'])
             d['facts']=f
             d['annotations']=f['annotations']
+            d['snapshot']['melds']=f['trace']['melds']
+            d['intent']=f['intent'];d['win_projection']=f['win_projection']
             return d
 
     def compare(self,body):
@@ -301,8 +322,12 @@ class ActionPredicate:
 
 
 def schema():
-    return {'version':VERSION,'query':recipe({}),'fields':sorted(KNOWN),
+    from .call_queries import query_schema
+    return {'call_query_schema':query_schema(),'version':VERSION,'query':recipe({}),'fields':sorted(KNOWN),
             'patterns':['233m','x{12}77z','111234556789m(1-5p)(1-3s)','(1m|4p|7z)','*'],
+            'meld_patterns':['[p]','[c]','[999]','[999m]','[c:456s@6s]','[a]','[kakan]'],
+            'win_yaku':win_projection.ALIASES,'win_codes':sorted(set(win_projection.CATALOG.values())),
+            'intent':{'states':['push','mawashi','fold'],'intent_min':'0..100 percent of UNCALIBRATED model posterior; forced actions excluded','intent_mode':'online (prefix-only) or review (bounded future evidence)'},
             'supply':['7m-2','8m+1','7m-[1..2]','8m+[0..1]'],
             'shanten_bases':SHANTEN_BASES, 'decision_flags':FLAG_DEFINITIONS,
             'meld_filters':{'open_melds_min/max':'自己的明副露面子数，不含暗杠',

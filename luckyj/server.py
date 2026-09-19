@@ -43,6 +43,8 @@ def handler(data: Path, good_budget=12000):
             url = urlsplit(self.path)
             static = {'/research':('research.html','text/html; charset=utf-8'),
                       '/research.js':('research.js','text/javascript; charset=utf-8'),
+                      '/extensions.js':('extensions.js','text/javascript; charset=utf-8'),
+                      '/extensions.css':('extensions.css','text/css; charset=utf-8'),
                       '/research.css':('research.css','text/css; charset=utf-8'),
                       '/':('index.html','text/html; charset=utf-8'),
                       '/app.js':('app.js','text/javascript; charset=utf-8'),
@@ -62,6 +64,9 @@ def handler(data: Path, good_budget=12000):
                     raise ValueError('不允许重复筛选字段')
                 q = {k:v[0] for k,v in q_multi.items()}
                 if url.path.startswith('/api/research/'):
+                    if url.path in ('/api/research/opportunities','/api/research/call-events'):
+                        from .call_queries import opportunities, call_events
+                        return self.send(200,(opportunities if url.path.endswith('opportunities') else call_events)(research(),q))
                     if url.path == '/api/research/schema': return self.send(200,schema())
                     if url.path == '/api/research/search': return self.send(200,research().search(q))
                     if url.path == '/api/research/stats': return self.send(200,research().stats(q))

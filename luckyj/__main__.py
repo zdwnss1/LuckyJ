@@ -14,6 +14,7 @@ def main():
     p.add_argument('--query',type=Path,help='JSON query file for precompute')
     p.add_argument('--good-budget',type=int,default=12000,help='Exact proof node budget; unfinished good-shape results stay null')
     p.add_argument('--all-candidates',action='store_true',help='Precompute full candidate metrics instead of actual-discard metrics')
+    p.add_argument('--intent-model',type=Path,help='Explicit expert model JSON for enrichment; changes model hash, not calibration status')
     a=p.parse_args()
     if a.native or a.command=='native':
         from .native_accel import compile_native
@@ -25,7 +26,7 @@ def main():
         raise SystemExit(0 if report['all_linked_logs_indexed'] else 1)
     if a.command=='enrich':
         from .enrich import enrich
-        enrich(a.data);return
+        enrich(a.data,a.intent_model);return
     if a.command=='mcp':
         from .mcp import serve_mcp
         serve_mcp(a.data,good_budget=a.good_budget);return

@@ -6,10 +6,14 @@ an HTTP MCP gateway and does not collect API keys or choose an LLM provider.
 import json
 import sys
 from .research import Research, KNOWN, schema
+from .call_queries import FIELDS as CALL_FIELDS, opportunities, call_events
 
 QUERY_SCHEMA={'type':'object','properties':{k:{'type':['string','integer']} for k in sorted(KNOWN)},'additionalProperties':False}
 EMPTY={'type':'object','properties':{},'additionalProperties':False}
+CALL_SCHEMA={'type':'object','properties':{k:{'type':['string','integer']} for k in sorted(CALL_FIELDS)},'additionalProperties':False}
 TOOLS=[
+    ('luckyj_opportunities','Pre-call/kan opportunities with selected, registered no-call and censored outcomes. Read schema; one trigger is one opportunity.',CALL_SCHEMA),
+    ('luckyj_call_events','Actual chi/pon/kan events with river-source provenance. Not a call-rate denominator.',CALL_SCHEMA),
     ('luckyj_schema','Read metric definitions and query syntax before statistical analysis.',EMPTY),
     ('luckyj_search','Find actual decisions. A result page is NOT a statistical sample. Use stats for complete counts.',QUERY_SCHEMA),
     ('luckyj_stats','Exact full-cohort original/aligned discard counts with source hash and recipe; fails rather than returns partial counts.',QUERY_SCHEMA),
@@ -17,6 +21,7 @@ TOOLS=[
     ('luckyj_compare','Compare follow_honor and/or local action definitions, both raw frequency and common legal opportunities. No causal conclusion.',{'type':'object','properties':{'filters':QUERY_SCHEMA,'a':{'type':'object'},'b':{'type':'object'}},'required':['a','b'],'additionalProperties':False}),
 ]
 
+TOOLS.sort(key=lambda t: 0 if t[0]=='luckyj_schema' else 1)
 
 def serve_mcp(data, stdin=None, stdout=None, good_budget=12000):
     stdin=stdin or sys.stdin;stdout=stdout or sys.stdout;engine=Research(data,good_budget=good_budget);initialized=False
@@ -53,6 +58,8 @@ def serve_mcp(data, stdin=None, stdout=None, good_budget=12000):
                     if name=='luckyj_schema':
                         if args:raise ValueError('schema accepts no arguments')
                         value=schema()
+                    elif name=='luckyj_opportunities':value=opportunities(engine,args)
+                    elif name=='luckyj_call_events':value=call_events(engine,args)
                     elif name=='luckyj_search':value=engine.search(args)
                     elif name=='luckyj_stats':value=engine.stats(args)
                     elif name=='luckyj_compare':value=engine.compare(args)

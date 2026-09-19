@@ -12,8 +12,8 @@ if not report['all_linked_logs_indexed']:
 out=root/'release';out.mkdir(exist_ok=True)
 archive=out/'LuckyJ-phase1.zip'
 with zipfile.ZipFile(archive,'w',compression=zipfile.ZIP_DEFLATED,compresslevel=6) as z:
-    paths=[root/'README.md']
-    for folder in ('luckyj','scripts','tests','docs','licenses','examples','data'):
+    paths=[root/'README.md',root/'requirements.txt']
+    for folder in ('luckyj','scripts','tests','docs','licenses','examples','models','data'):
         paths.extend(p for p in (root/folder).rglob('*') if p.is_file() and '__pycache__' not in p.parts and p.suffix not in ('.pyc','.tmp','.so','.dll','.dylib') and '.build-' not in p.name and not p.name.startswith('research-metrics.sqlite'))
     for p in sorted(paths):
         z.write(p,Path('LuckyJ')/p.relative_to(root))
