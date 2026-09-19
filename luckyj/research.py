@@ -18,6 +18,7 @@ from .enrich import file_sha
 from .patterns import Matcher, map_token
 from .store import connect, filters, summary, detail, packed, unpacked
 from .tiles import kind, normal
+from .decision_flags import VERSION as FLAGS_VERSION, FLAG_KEYS, FLAG_DEFINITIONS, new_facets, count_facets
 
 LEGACY={'basis','wind','hand_no','honba_min','honba_max','seat_wind','turn_min','turn_max',
         'tsumogiri','riichi_declared','log_id','round_seq'}
@@ -26,8 +27,10 @@ PATTERN={'hand','supply','suits','reverse','honors','honor_roles','red','draw','
 RANGES={'riichi':(0,3,'opponent_riichi'),'dora':(0,100,'dora_count'),'red_count':(0,3,'red_count'),
         'gap_above':(0,1000000,'gap_above'),'gap_below':(0,1000000,'gap_below'),
         'gap_leader':(0,1000000,'gap_leader'),'gap_last':(0,1000000,'gap_last')}
+RANGES.update({'open_melds':(0,4,'own_open_melds'), 'closed_kans':(0,4,'own_closed_kans'),
+               'opponents_open':(0,3,'opponents_open')})
 SHANTEN_BASES={'initial':'initial_shanten','before_draw':'before_draw_shanten','current':'current_shanten','after':'after_shanten','best':'best_shanten'}
-KNOWN=LEGACY|PATTERN|{'shanten','shanten_min','shanten_max','shanten_basis','exclude_locked','sanshoku',
+KNOWN=LEGACY|PATTERN|set(FLAG_KEYS)|{'shanten','shanten_min','shanten_max','shanten_basis','exclude_locked','sanshoku',
                     'max_ukeire','max_good','ukeire_min','ukeire_max','good_min','good_max',
                     'after','limit','bucket','raw_bucket','metrics','initial_shanten'}
 KNOWN.update(p+'_'+s for p in RANGES for s in ('min','max'))
@@ -54,6 +57,9 @@ def validate(q):
     filters({k:v for k,v in q.items() if k in LEGACY})
     for key in ('exclude_locked','max_ukeire','max_good','metrics'):
         integer(q,key,0,1)
+    for key in FLAG_KEYS:integer(q,key,0,1)
+    if q.get('riichi_locked')=='1' and q.get('exclude_locked','1')=='1':
+        raise ValueError('要检索立直后切牌，请将 exclude_locked 设为0')
     integer(q,'after',0,2**63-1);integer(q,'limit',1,100)
     integer(q,'initial_shanten',-1,8)
     if q.get('shanten_basis','after') not in SHANTEN_BASES:raise ValueError('向听时点无效')
@@ -69,6 +75,8 @@ def validate(q):
 def clauses(q):
     where,args=filters({k:v for k,v in q.items() if k in LEGACY});parts=[where]
     if q.get('exclude_locked','1')=='1':parts.append('r.self_riichi=0')
+    for key in FLAG_KEYS:
+        if key in q:parts.append('r.'+key+'=?');args.append(int(q[key]))
     for prefix,(lo,hi,column) in RANGES.items():
         for suffix,op in (('min','>='),('max','<=')):
             value=integer(q,prefix+'_'+suffix,lo,hi)
@@ -84,6 +92,8 @@ def clauses(q):
 
 def recipe(q):
     return {'schema':'luckyj-query-v1','metric_version':VERSION,'good_rule':GOOD_RULE,
+            'decision_flags_version':FLAGS_VERSION,'decision_flags':FLAG_DEFINITIONS,
+            'meld_scope':'open-meld STATE at each discard; ankan is separate; not call-event or opportunity frequency',
             'filters':q,'defaults':{'suits':True,'reverse':False,'honors':'roles','red':False,
                                   'honor_roles':[1,0,0,0,1,1,1],'exclude_locked':True,'shanten_basis':'after'},
             'remaining':'unseen, not omniscient live wall; signed supply constraints never modify a sample',
@@ -156,6 +166,7 @@ class Research:
         start=time.monotonic();deadline=start+seconds;matcher=Matcher(q)
         try:
             where,args=clauses(q);ids=[];buckets={};raw_buckets={};raw=Counter();normalized=Counter();games=set();rounds=set();ambiguous=0
+            facets=new_facets()
             expensive=any(k in q for k in ('max_ukeire','max_good','ukeire_min','ukeire_max','good_min','good_max'))
             with closing(self.db()) as db:
                 db.set_progress_handler(lambda:int(time.monotonic()>deadline),10000)
@@ -168,6 +179,7 @@ class Research:
                     match=matcher.matches(f['hand37'],f,r['wind'],r['seat_wind'],r['draw'],r['discard'],deadline=deadline)
                     if match is None:continue
                     if expensive and not self._metric_filter({**dict(r),'aka':f['aka']},q):continue
+                    count_facets(facets,f['annotations']['flags'])
                     labels=match['possible_discards']
                     bucket=' / '.join(labels) if labels else r['discard']
                     if len(labels)>1:ambiguous+=1
@@ -178,6 +190,7 @@ class Research:
             digest=hashlib.sha256(json.dumps(receipt,sort_keys=True).encode()).hexdigest()
             c={'ids':ids,'buckets':buckets,'raw_buckets':raw_buckets,'total':len(ids),'games':len(games),'rounds':len(rounds),
                'raw':dict(raw),'normalized':dict(normalized),'ambiguous_states':ambiguous,
+               'decision_flags':facets,'flags_denominator':len(ids),'flags_overlap':True,
                'recipe':receipt,'query_hash':digest,'complete':True,'elapsed_seconds':round(time.monotonic()-start,3)}
             with self.lock:
                 self.cohorts[key]=c
@@ -205,6 +218,7 @@ class Research:
                 f=unpacked(row['facts']);item=summary(row,q.get('basis','decision'))
                 item['alignment']=matcher.matches(f['hand37'],f,row['wind'],row['seat_wind'],row['draw'],row['discard'])
                 item['availability']=f
+                item['annotations']=f['annotations']
                 item['shanten']={k:row[k+'_shanten'] for k in ('initial','before_draw','current','after','best')}
                 if q.get('metrics','1')=='1':
                     a=self.metrics({**dict(row),'aka':f['aka']});item['analysis']=a['selected']
@@ -226,6 +240,7 @@ class Research:
             f=unpacked(r['facts']);d['analysis']=self.metrics({**dict(r),'aka':f['aka']},True)
             d['alignment']=matcher.matches(f['hand37'],f,r['wind'],r['seat_wind'],r['draw'],r['discard'])
             d['facts']=f
+            d['annotations']=f['annotations']
             return d
 
     def compare(self,body):
@@ -289,7 +304,12 @@ def schema():
     return {'version':VERSION,'query':recipe({}),'fields':sorted(KNOWN),
             'patterns':['233m','x{12}77z','111234556789m(1-5p)(1-3s)','(1m|4p|7z)','*'],
             'supply':['7m-2','8m+1','7m-[1..2]','8m+[0..1]'],
-            'shanten_bases':SHANTEN_BASES,'action_predicates':{
+            'shanten_bases':SHANTEN_BASES, 'decision_flags':FLAG_DEFINITIONS,
+            'meld_filters':{'open_melds_min/max':'自己的明副露面子数，不含暗杠',
+                            'closed_kans_min/max':'自己的暗杠数',
+                            'opponents_open_min/max':'有明副露的他家人数',
+                            'post_call_discard':'吃碰后直接切牌'},
+            'action_predicates':{
                 'follow_honor':{'kind':'follow_honor','role':0,'singleton':True},
                 'local':{'kind':'local','patterns':['14','134','124'],'cut':1,'window':[1,4],'reverse':False}},
             'safety':'Read-only bounded queries; totals are complete or an error, never extrapolated from a page.'}

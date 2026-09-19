@@ -10,10 +10,11 @@ from .analysis import VERSION, counts, facts, legal_discards, roles
 from .shanten import shanten
 from .store import connect, packed, unpacked
 from .tiles import token, kind
+from .decision_flags import VERSION as FLAGS_VERSION, FLAG_KEYS, MELD_COLUMNS, annotate, sql_values
 
 COLUMNS = ('id','initial_shanten','before_draw_shanten','current_shanten','after_shanten','best_shanten',
            'self_riichi','opponent_riichi','dora_count','red_count','sanshoku_obvious','gap_above','gap_below',
-           'gap_leader','gap_last','facts')
+           'gap_leader','gap_last') + FLAG_KEYS + MELD_COLUMNS + ('facts',)
 
 
 def file_sha(path):
@@ -63,6 +64,8 @@ def enrich(data: Path):
             best=8
             for t in set(map(kind,legal)):
                 x=list(h);x[t]-=1;best=min(best,shanten(tuple(x)))
+            annotation=annotate(s,dict(r),before_draw,shanten(tuple(after)),best)
+            f['annotations']=annotation
             f['aka']=aka;f['legal_discards']=legal;f['roles']=list(roles(r['wind'],r['seat_wind']))
             last=s['rivers'][0][-1]['event_seq'] if s['rivers'][0] else -1
             follows=[]
@@ -75,14 +78,14 @@ def enrich(data: Path):
             values=(r['id'],initial[(r['log_id'],r['round_seq'])],before_draw,shanten(h),shanten(tuple(after)),best,
                     int(f['self_riichi']),f['opponent_riichi'],f['dora_count'],f['red_count'],int(sanshoku_obvious(s)),
                     ordered[rank-2]-mine if rank>1 else None, mine-ordered[rank] if rank<4 else None,
-                    ordered[0]-mine,mine-ordered[-1],packed(f))
+                    ordered[0]-mine,mine-ordered[-1],*sql_values(annotation),packed(f))
             batch.append(values);n+=1
             if len(batch)==1000:
                 out.executemany('INSERT INTO observations VALUES('+','.join('?'*len(COLUMNS))+')',batch);out.commit();batch=[]
             if n%20000==0:print(f'Research facts: {n} states',flush=True)
         if batch:out.executemany('INSERT INTO observations VALUES('+','.join('?'*len(COLUMNS))+')',batch)
         out.executescript('CREATE INDEX obs_shanten ON observations(initial_shanten,after_shanten); CREATE INDEX obs_riichi ON observations(self_riichi,opponent_riichi);')
-        report={'version':VERSION,'source_sha256':source_sha,'observations':n,'complete':True,
+        report={'version':VERSION,'decision_flags_version':FLAGS_VERSION,'source_sha256':source_sha,'observations':n,'complete':True,
                 'built_at_unix':int(time.time()),'elapsed_seconds':round(time.monotonic()-started,3),
                 'remaining_semantics':'unseen=4-own_concealed-public_unique; not omniscient live wall',
                 'sanshoku_definition':'two-equal-sequences-plus-two-v1','candidate_metrics':'computed on demand; optional precompute'}

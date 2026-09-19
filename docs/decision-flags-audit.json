@@ -1,0 +1,154 @@
+{
+  "complete": true,
+  "source_sha256": "5c2e85c06115f4f188c6ce573ed9077b00ef09af3734f5ab6164f79e339e662d",
+  "checked_decisions": 156324,
+  "inconsistencies": [],
+  "sqlite_integrity": "ok",
+  "cohorts": {
+    "default": {
+      "total": 147373,
+      "games": 1256,
+      "rounds": 12959,
+      "decision_flags": {
+        "follow_discard": {
+          "true": 20285,
+          "false": 127088,
+          "unknown": 0
+        },
+        "follow_immediate": {
+          "true": 8588,
+          "false": 138785,
+          "unknown": 0
+        },
+        "riichi_declaration": {
+          "true": 2492,
+          "false": 144881,
+          "unknown": 0
+        },
+        "riichi_locked": {
+          "true": 0,
+          "false": 147373,
+          "unknown": 0
+        },
+        "damaten": {
+          "true": 2528,
+          "false": 144845,
+          "unknown": 0
+        },
+        "dama_enter": {
+          "true": 924,
+          "false": 146449,
+          "unknown": 0
+        },
+        "dama_hold": {
+          "true": 1604,
+          "false": 145769,
+          "unknown": 0
+        },
+        "shanten_retreat": {
+          "true": 5543,
+          "false": 134769,
+          "unknown": 7061
+        },
+        "tenpai_break": {
+          "true": 339,
+          "false": 139973,
+          "unknown": 7061
+        },
+        "miss_minimum": {
+          "true": 10130,
+          "false": 137243,
+          "unknown": 0
+        },
+        "post_call_discard": {
+          "true": 7061,
+          "false": 140312,
+          "unknown": 0
+        }
+      },
+      "flags_denominator": 147373,
+      "flags_overlap": true,
+      "query_hash": "4ce188a9b88469a30d0eccddd008d147c0fad1a09dbfc779c3cbb5af9734e235"
+    },
+    "all_discard_states": {
+      "total": 156324,
+      "games": 1256,
+      "rounds": 12959,
+      "decision_flags": {
+        "follow_discard": {
+          "true": 20834,
+          "false": 135490,
+          "unknown": 0
+        },
+        "follow_immediate": {
+          "true": 8772,
+          "false": 147552,
+          "unknown": 0
+        },
+        "riichi_declaration": {
+          "true": 2492,
+          "false": 153832,
+          "unknown": 0
+        },
+        "riichi_locked": {
+          "true": 8951,
+          "false": 147373,
+          "unknown": 0
+        },
+        "damaten": {
+          "true": 2528,
+          "false": 153796,
+          "unknown": 0
+        },
+        "dama_enter": {
+          "true": 924,
+          "false": 155400,
+          "unknown": 0
+        },
+        "dama_hold": {
+          "true": 1604,
+          "false": 154720,
+          "unknown": 0
+        },
+        "shanten_retreat": {
+          "true": 5543,
+          "false": 143720,
+          "unknown": 7061
+        },
+        "tenpai_break": {
+          "true": 339,
+          "false": 148924,
+          "unknown": 7061
+        },
+        "miss_minimum": {
+          "true": 10130,
+          "false": 146194,
+          "unknown": 0
+        },
+        "post_call_discard": {
+          "true": 7061,
+          "false": 149263,
+          "unknown": 0
+        }
+      },
+      "flags_denominator": 156324,
+      "flags_overlap": true,
+      "query_hash": "a56a0e4ea32cf3e45bd73dc483de0cc0cfdc5a150ae9b498cf30db05783aa6b5"
+    }
+  },
+  "open_meld_state_counts": {
+    "0": 123358,
+    "1": 22144,
+    "2": 9052,
+    "3": 1730,
+    "4": 40
+  },
+  "actual_meld_event_counts": {
+    "pon": 4457,
+    "chi": 2604,
+    "kakan": 179,
+    "ankan": 180,
+    "daiminkan": 37
+  },
+  "limitations": "Source snapshot and scalar consistency only. No new independent shanten proof; no call-opportunity or public deployment claim."
+}
