@@ -1,4 +1,4 @@
-name: Resolve Bilibili rl809868
+name: Resolve Bilibili rl809868 opus IDs
 on:
   push:
     branches:
@@ -13,186 +13,65 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - name: Resolve readlist without search
+      - name: Resolve from readlist API dyn_id_str
         run: |
           python - <<'PY'
-          import json, re, time, urllib.request, urllib.error, http.cookiejar
+          import json, re, urllib.request, http.cookiejar
           from pathlib import Path
 
-          RLID = "809868"
-          OUT = Path("tmp/rl809868-resolved.json")
-          OUT.parent.mkdir(parents=True, exist_ok=True)
-
-          jar = http.cookiejar.CookieJar()
-          opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
-          UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36"
-          base_headers = {
-              "User-Agent": UA,
-              "Referer": "https://www.bilibili.com/",
-              "Accept-Language": "zh-CN,zh;q=0.9,en;q=0.7",
+          api="https://api.bilibili.com/x/article/list/web/articles?id=809868"
+          jar=http.cookiejar.CookieJar()
+          opener=urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+          headers={
+            "User-Agent":"Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/141 Safari/537.36",
+            "Referer":"https://www.bilibili.com/",
+            "Accept-Language":"zh-CN,zh;q=0.9,en;q=0.7"
           }
-
-          def get(url, timeout=30):
-              req = urllib.request.Request(url, headers=base_headers)
-              with opener.open(req, timeout=timeout) as r:
-                  raw = r.read()
-                  return r.geturl(), raw, dict(r.headers)
-
-          result = {
-              "rlid": RLID,
-              "api_url": f"https://api.bilibili.com/x/article/list/web/articles?id={RLID}",
-              "errors": [],
-              "api_raw_top_keys": [],
-              "articles": [],
-          }
-
+          def get(url):
+            req=urllib.request.Request(url,headers=headers)
+            with opener.open(req,timeout=30) as r:
+              return r.geturl(),r.read().decode("utf-8","replace")
           try:
+            get("https://www.bilibili.com/")
+          except Exception:
+            pass
+          _,txt=get(api)
+          data=json.loads(txt)
+          arts=(data.get("data") or {}).get("articles") or []
+          out={"rlid":809868,"api_code":data.get("code"),"articles":[]}
+          for a in arts:
+            dyn=str(a.get("dyn_id_str") or "").strip()
+            item={
+              "cvid":a.get("id"),
+              "title":a.get("title"),
+              "dyn_id_str":dyn,
+              "opus_url":f"https://www.bilibili.com/opus/{dyn}" if dyn.isdigit() else None,
+              "image_urls":a.get("image_urls") or [],
+              "summary":a.get("summary") or "",
+              "validation":None
+            }
+            if item["opus_url"]:
               try:
-                  get("https://www.bilibili.com/", 20)
+                final,html=get(item["opus_url"])
+                m=re.search(r"<title[^>]*>(.*?)</title>",html,re.I|re.S)
+                title_tag=re.sub(r"\s+"," ",m.group(1)).strip() if m else ""
+                item["validation"]={
+                  "final_url":final,
+                  "title_tag":title_tag,
+                  "html_len":len(html),
+                  "title_matches":(a.get("title") or "") in title_tag
+                }
               except Exception as e:
-                  result["errors"].append({"stage":"homepage_cookie","error":repr(e)})
-
-              final, raw, headers = get(result["api_url"], 30)
-              text = raw.decode("utf-8", "replace")
-              result["api_http_final"] = final
-              result["api_prefix"] = text[:500]
-              data = json.loads(text)
-              result["api_raw_top_keys"] = sorted(data.keys())
-              result["api_code"] = data.get("code")
-              payload = data.get("data") or {}
-              arts = payload.get("articles") or payload.get("list") or []
-              result["api_payload_keys"] = sorted(payload.keys()) if isinstance(payload, dict) else []
-
-              for a in arts:
-                  if not isinstance(a, dict):
-                      continue
-                  cvid = a.get("id") or a.get("cvid") or a.get("cv")
-                  title = a.get("title") or ""
-                  item = {
-                      "cvid": int(cvid) if str(cvid).isdigit() else cvid,
-                      "title": title,
-                      "api_keys": sorted(a.keys()),
-                      "api_opus_candidates": [],
-                      "opus_url": None,
-                      "resolution": None,
-                      "resolution_errors": [],
-                  }
-                  for k,v in a.items():
-                      ks = str(k).lower()
-                      if ("opus" in ks or "dynamic" in ks) and v not in (None,"",0,False,[]):
-                          item["api_opus_candidates"].append([k,v])
-                  result["articles"].append(item)
-          except Exception as e:
-              result["errors"].append({"stage":"readlist_api","error":repr(e)})
-
-          # Readlist HTML fallback, still no search.
-          if not result["articles"]:
-              try:
-                  final, raw, headers = get(f"https://www.bilibili.com/read/readlist/rl{RLID}", 30)
-                  html = raw.decode("utf-8", "replace")
-                  result["readlist_final"] = final
-                  result["readlist_html_len"] = len(html)
-                  cvs = sorted(set(int(x) for x in re.findall(r"/read/cv(\d+)", html)))
-                  result["readlist_html_cvids"] = cvs
-                  for cv in cvs:
-                      result["articles"].append({
-                          "cvid": cv, "title":"", "api_keys":[],
-                          "api_opus_candidates":[], "opus_url":None,
-                          "resolution":None, "resolution_errors":[]
-                      })
-              except Exception as e:
-                  result["errors"].append({"stage":"readlist_html","error":repr(e)})
-
-          def find_opus(final_url, html):
-              cand = []
-              if re.search(r"/opus/\d+", final_url):
-                  cand += re.findall(r"/opus/(\d+)", final_url)
-              patterns = [
-                  r'https?://www\.bilibili\.com/opus/(\d+)',
-                  r'//www\.bilibili\.com/opus/(\d+)',
-                  r'["\'](?:opus_id|opusId|opusid)["\']\s*[:=]\s*["\']?(\d+)',
-                  r'["\'](?:dynamic_id|dynamicId)["\']\s*[:=]\s*["\']?(\d+)',
-                  r'/opus/(\d+)',
-              ]
-              for p in patterns:
-                  cand += re.findall(p, html)
-              # preserve frequency order but unique
-              seen=[] 
-              for x in cand:
-                  if x not in seen: seen.append(x)
-              return seen
-
-          # Resolve each legacy cvid through compatibility page; no title search.
-          for item in result["articles"]:
-              cvid = item.get("cvid")
-              if not cvid:
-                  continue
-              legacy_urls = [
-                  f"https://www.bilibili.com/read/cv{cvid}/?jump_opus=1",
-                  f"https://www.bilibili.com/read/cv{cvid}?jump_opus=1",
-                  f"https://www.bilibili.com/read/cv{cvid}/",
-              ]
-              all_candidates=[]
-              for u in legacy_urls:
-                  try:
-                      final, raw, headers = get(u, 30)
-                      html = raw.decode("utf-8", "replace")
-                      cands = find_opus(final, html)
-                      item.setdefault("legacy_attempts", []).append({
-                          "url":u, "final":final, "html_len":len(html),
-                          "opus_candidates":cands[:20],
-                          "title_tag": (re.search(r"<title[^>]*>(.*?)</title>", html, re.I|re.S).group(1).strip()
-                                        if re.search(r"<title[^>]*>(.*?)</title>", html, re.I|re.S) else "")
-                      })
-                      all_candidates += cands
-                      if cands:
-                          break
-                  except Exception as e:
-                      item["resolution_errors"].append({"url":u,"error":repr(e)})
-                  time.sleep(0.5)
-              uniq=[]
-              for x in all_candidates:
-                  if x not in uniq: uniq.append(x)
-
-              # Prefer exact single candidate. If API itself exposed an opus id, use it.
-              api_ids=[]
-              for k,v in item.get("api_opus_candidates", []):
-                  sv=str(v)
-                  if sv.isdigit() and len(sv)>=10:
-                      api_ids.append(sv)
-              if api_ids:
-                  item["opus_url"]="https://www.bilibili.com/opus/"+api_ids[0]
-                  item["resolution"]="api_field"
-              elif len(uniq)==1:
-                  item["opus_url"]="https://www.bilibili.com/opus/"+uniq[0]
-                  item["resolution"]="legacy_page_unique"
-              elif len(uniq)>1:
-                  item["opus_candidates_unique"]=uniq
-
-          # Validate each resolved opus title by direct open.
-          for item in result["articles"]:
-              if not item.get("opus_url"):
-                  continue
-              try:
-                  final, raw, headers = get(item["opus_url"], 30)
-                  html = raw.decode("utf-8","replace")
-                  m = re.search(r"<title[^>]*>(.*?)</title>", html, re.I|re.S)
-                  item["opus_final"] = final
-                  item["opus_html_len"] = len(html)
-                  item["opus_title_tag"] = re.sub(r"\s+"," ",m.group(1)).strip() if m else ""
-                  item["opus_image_urls_found"] = len(set(re.findall(r'https?://[^"\'<>\s]+(?:\.jpg|\.jpeg|\.png|\.webp)(?:@[^"\'<>\s]+)?', html, re.I)))
-              except Exception as e:
-                  item["resolution_errors"].append({"stage":"opus_validate","error":repr(e)})
-
-          OUT.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
-          print(json.dumps(result, ensure_ascii=False))
+                item["validation"]={"error":repr(e)}
+            out["articles"].append(item)
+          Path("tmp").mkdir(exist_ok=True)
+          Path("tmp/rl809868-opus.json").write_text(json.dumps(out,ensure_ascii=False,indent=2),encoding="utf-8")
+          print(json.dumps(out,ensure_ascii=False))
           PY
-
-      - name: Commit resolver result
+      - name: Commit result
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add tmp/rl809868-resolved.json
-          git commit -m "Resolve Bilibili rl809868 opus IDs" || exit 0
+          git add tmp/rl809868-opus.json
+          git commit -m "Resolve rl809868 dyn IDs to opus" || exit 0
           git push
