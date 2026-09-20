@@ -1,0 +1,456 @@
+{
+  "rlid": "809868",
+  "api_url": "https://api.bilibili.com/x/article/list/web/articles?id=809868",
+  "errors": [],
+  "api_raw_top_keys": [
+    "code",
+    "data",
+    "message",
+    "ttl"
+  ],
+  "articles": [
+    {
+      "cvid": 32929491,
+      "title": "《统计与枚数》二、19数牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv32929491/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv32929491/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv32929491?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv32929491/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv32929491/",
+          "final": "https://www.bilibili.com/read/cv32929491/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 32929161,
+      "title": "《统计与枚数》一、背景与说明",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv32929161/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv32929161/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv32929161?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv32929161/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv32929161/",
+          "final": "https://www.bilibili.com/read/cv32929161/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33233199,
+      "title": "《统计与枚数》三、28数牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": "https://www.bilibili.com/opus/909128393440624648",
+      "resolution": "legacy_page_unique",
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33233199/?jump_opus=1",
+          "final": "https://www.bilibili.com/opus/909128393440624648?jump_opus=1",
+          "html_len": 100617,
+          "opus_candidates": [
+            "909128393440624648"
+          ],
+          "title_tag": "《统计与枚数》三、28数牌 - 哔哩哔哩"
+        }
+      ],
+      "opus_final": "https://www.bilibili.com/opus/909128393440624648",
+      "opus_html_len": 100617,
+      "opus_title_tag": "《统计与枚数》三、28数牌 - 哔哩哔哩",
+      "opus_image_urls_found": 0
+    },
+    {
+      "cvid": 33457294,
+      "title": "《统计与枚数》四、37数牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33457294/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33457294/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33457294?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33457294/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33457294/",
+          "final": "https://www.bilibili.com/read/cv33457294/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33710666,
+      "title": "《统计与枚数》五、46数牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33710666/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33710666/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33710666?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33710666/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33710666/",
+          "final": "https://www.bilibili.com/read/cv33710666/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33712570,
+      "title": "《统计与枚数》五、5数牌总体",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33712570/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33712570/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33712570?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33712570/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33712570/",
+          "final": "https://www.bilibili.com/read/cv33712570/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33798362,
+      "title": "《统计与枚数》六、字牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33798362/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33798362/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33798362?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33798362/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33798362/",
+          "final": "https://www.bilibili.com/read/cv33798362/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33943991,
+      "title": "《统计与枚数》七、红宝牌",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33943991/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33943991/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33943991?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33943991/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33943991/",
+          "final": "https://www.bilibili.com/read/cv33943991/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    },
+    {
+      "cvid": 33998126,
+      "title": "《统计与枚数》八、七对进张研究",
+      "api_keys": [
+        "attributes",
+        "author_uid",
+        "categories",
+        "category",
+        "dyn_id_str",
+        "id",
+        "image_urls",
+        "like_state",
+        "only_fans",
+        "publish_time",
+        "state",
+        "stats",
+        "summary",
+        "title",
+        "type",
+        "words"
+      ],
+      "api_opus_candidates": [],
+      "opus_url": null,
+      "resolution": null,
+      "resolution_errors": [],
+      "legacy_attempts": [
+        {
+          "url": "https://www.bilibili.com/read/cv33998126/?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33998126/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33998126?jump_opus=1",
+          "final": "https://www.bilibili.com/read/cv33998126/?jump_opus=1",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        },
+        {
+          "url": "https://www.bilibili.com/read/cv33998126/",
+          "final": "https://www.bilibili.com/read/cv33998126/",
+          "html_len": 3318,
+          "opus_candidates": [],
+          "title_tag": ""
+        }
+      ]
+    }
+  ],
+  "api_http_final": "https://api.bilibili.com/x/article/list/web/articles?id=809868",
+  "api_prefix": "{\"code\":0,\"message\":\"OK\",\"ttl\":1,\"data\":{\"list\":{\"id\":809868,\"mid\":14176894,\"name\":\"统计与枚数\",\"image_url\":\"https://i0.hdslb.com/bfs/article/96d2b3d2a72e6497a011c885ab9245c51507ce18.png\",\"update_time\":1713774145,\"ctime\":1710012772,\"publish_time\":1713774148,\"summary\":\"\",\"words\":45274,\"read\":15009,\"articles_count\":9,\"state\":1,\"reason\":\"\",\"apply_time\":\"\",\"check_time\":\"\"},\"articles\":[{\"id\":32929491,\"title\":\"《统计与枚数》二、19数牌\",\"state\":0,\"publish_time\":1709991336,\"words\":3058,\"image_urls\":[\"https://i0.hdslb.c",
+  "api_code": 0,
+  "api_payload_keys": [
+    "articles",
+    "attention",
+    "author",
+    "last",
+    "list"
+  ]
+}
